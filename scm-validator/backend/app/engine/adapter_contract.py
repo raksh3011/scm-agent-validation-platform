@@ -104,8 +104,19 @@ KNOWN_PARAM_SHAPES = [
 
 def _find_decision_function(facts) -> tuple[Optional[str], Optional[str], Optional[list[str]]]:
     """Returns (module_rel_path, function_name, param_names) of the best candidate
-    decision entrypoint, or (None, None, None) if nothing confident was found."""
-    best = None
+    decision entrypoint, or (None, None, None) if nothing confident was found.
+
+    Collects every decision-verb-named function across the whole submission that
+    matches ANY known param shape, then picks the one matching the MOST SPECIFIC
+    (longest) shape -- not just the first function encountered in file order.
+    This matters because a name like "choose_supplier(suppliers, product)" can
+    coincidentally match a weaker shape ["product", "suppliers"] while a true
+    top-level entrypoint like "decide(product, suppliers, context, live)" matches
+    a stronger, more specific shape; the stronger match must win regardless of
+    which function appears first in the source.
+    """
+    candidates: list[tuple[int, str, str, list[str]]] = []  # (shape_len, rel_path, fn_name, params)
+
     for f in facts.files:
         if f.ext != ".py" or not f.content:
             continue
@@ -119,15 +130,21 @@ def _find_decision_function(facts) -> tuple[Optional[str], Optional[str], Option
             if not DECISION_VERB_RE.search(node.name):
                 continue
             params = [a.arg for a in node.args.args]
+            best_shape_len = 0
             for shape, _live_param in KNOWN_PARAM_SHAPES:
                 if all(p in params for p in shape):
-                    best = (f.rel_path, node.name, params)
-                    break
-            if best:
-                break
-        if best:
-            break
-    return best or (None, None, None)
+                    best_shape_len = max(best_shape_len, len(shape))
+            if best_shape_len:
+                candidates.append((best_shape_len, f.rel_path, node.name, params))
+
+    if not candidates:
+        return None, None, None
+
+    # Longest (most specific) shape wins; ties broken by preferring fewer total
+    # params (closer to an exact match rather than a superset with extra args).
+    candidates.sort(key=lambda c: (-c[0], len(c[3])))
+    _, rel_path, fn_name, params = candidates[0]
+    return rel_path, fn_name, params
 
 
 def auto_generate_adapter_stub(facts) -> str:

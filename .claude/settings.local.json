@@ -49,7 +49,16 @@
       "Bash(./.venv/Scripts/python.exe -c \"import pydantic; print\\(pydantic.VERSION\\)\")",
       "Bash(./.venv/Scripts/python.exe tests/test_phase2_sandbox.py)",
       "Bash(./.venv/Scripts/python.exe tests/test_phase3_invariants.py)",
-      "Bash(./.venv/Scripts/python.exe tests/test_phase4_golden_scenarios.py)"
+      "Bash(./.venv/Scripts/python.exe tests/test_phase4_golden_scenarios.py)",
+      "Bash(find /tmp/scm_test_reverbend -name \"*.py\" | head -20)",
+      "Bash(cygpath -w /tmp/scm_test_reverbend)",
+      "Bash(mkdir -p \"/c/Users/Sanjay/AppData/Local/Temp/scm_test_reverbend_fixed\")",
+      "Bash(cp \"/c/Users/Sanjay/AppData/Local/Temp/scm_test_reverbend/smart_reorder_agent.py\" \"/c/Users/Sanjay/AppData/Local/Temp/scm_test_reverbend_fixed/smart_reorder_agent.py\")",
+      "Bash(/c/Users/Sanjay/Desktop/SCM/scm-validator/backend/.venv/Scripts/python.exe -c ' *)",
+      "Read(//c/Users/Sanjay/AppData/Local/Temp/scm_harness_auto_adapters/**)",
+      "Read(//c/Users/Sanjay/AppData/Local/Temp/scm_harness_auto_adapters//**)",
+      "Bash(rm -rf \"/c/Users/Sanjay/AppData/Local/Temp/scm_harness_auto_adapters\")",
+      "Bash(./.venv/Scripts/python.exe tests/test_phase1_entrypoint_detection.py)"
     ]
   }
 }
