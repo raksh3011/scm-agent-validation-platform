@@ -36,7 +36,12 @@
       "Bash(rm -rf storage/workspaces/4ceb39b3bb87)",
       "Bash(time curl -s -X POST http://localhost:8000/api/runs -F agent_name=SupplyChainAgent -F repo_url=https://github.com/HIT-ICES/SupplyChainAgent -F 'use_case=Supply chain agent')",
       "Bash(curl -s http://localhost:8000/api/runs/a480973685e5/results)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(gh auth *)",
+      "PowerShell(winget install --id GitHub.cli -e --silent --accept-package-agreements --accept-source-agreements 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh --version 2>&1)",
+      "PowerShell(gh auth status 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh auth status 2>&1)"
     ]
   }
 }

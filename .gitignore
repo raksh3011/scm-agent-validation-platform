@@ -1,4 +1,3 @@
-scm-validator/frontend/
 .venv/
 __pycache__/
 .cache/
@@ -9,3 +8,10 @@ scm-validator/backend/storage/uploads/
 scm-validator/backend/storage/*.db
 scm-validator/backend/server.log
 scm-validator/backend/storage/test_workspace/
+
+# frontend (Next.js)
+scm-validator/frontend/node_modules/
+scm-validator/frontend/.next/
+scm-validator/frontend/.env*
+scm-validator/frontend/frontend.log
+scm-validator/frontend/next-env.d.ts
