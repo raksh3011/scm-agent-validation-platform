@@ -46,6 +46,17 @@ def _execute_run(run_id: str, workspace: Path, context: dict, source_type: str, 
         pipeline.mark_failed(run_id, str(e))
 
 
+def _execute_repo_run(run_id: str, repo_url: str, context: dict):
+    """Clone happens here (in the background) so the HTTP request doesn't block on a slow clone."""
+    try:
+        _set_status(run_id, "running")
+        workspace = repo_ingestor.ingest_repo_url(run_id, repo_url)
+        result = pipeline.run_validation(run_id, workspace, context)
+        pipeline.persist_result(result, "repo_url", repo_url, context)
+    except Exception as e:
+        pipeline.mark_failed(run_id, str(e))
+
+
 @router.post("")
 async def create_run(
     background_tasks: BackgroundTasks,
@@ -72,11 +83,9 @@ async def create_run(
     if repo_url:
         source_type, source_ref = "repo_url", repo_url
         _create_run_row(run_id, agent_name, source_type, source_ref, use_case, expected_io, description, enable_llm_insights)
-        try:
-            workspace = repo_ingestor.ingest_repo_url(run_id, repo_url)
-        except Exception as e:
-            pipeline.mark_failed(run_id, str(e))
-            return {"run_id": run_id, "status": "failed", "error": str(e)}
+        # Clone in the background so this request returns immediately instead of blocking on a slow clone.
+        background_tasks.add_task(_execute_repo_run, run_id, repo_url, context)
+        return {"run_id": run_id, "status": "queued"}
     else:
         non_empty = [f for f in files if f.filename]
         if len(non_empty) == 1 and non_empty[0].filename.lower().endswith(ZIP_EXT):

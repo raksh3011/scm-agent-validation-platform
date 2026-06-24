@@ -31,7 +31,12 @@
       "Bash(curl -s http://localhost:8000/api/runs/1561f24c902e/status)",
       "Bash(npx tsc *)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(./.venv/Scripts/python.exe -c \"from app.main import app; print\\('imports OK'\\)\")"
+      "Bash(./.venv/Scripts/python.exe -c \"from app.main import app; print\\('imports OK'\\)\")",
+      "Bash(cd \"/c/Users/Sanjay/Desktop/SCM/scm-validator/backend\" && sed -i 's/content = _content_for_analysis\\(facts.root, facts.files\\)/content = facts.corpus_lower/g' app/engine/positive_signals.py && grep -n \"_content_for_analysis\\\\|corpus_lower\" app/engine/positive_signals.py)",
+      "Bash(rm -rf storage/workspaces/4ceb39b3bb87)",
+      "Bash(time curl -s -X POST http://localhost:8000/api/runs -F agent_name=SupplyChainAgent -F repo_url=https://github.com/HIT-ICES/SupplyChainAgent -F 'use_case=Supply chain agent')",
+      "Bash(curl -s http://localhost:8000/api/runs/a480973685e5/results)",
+      "Bash(python -c ' *)"
     ]
   }
 }

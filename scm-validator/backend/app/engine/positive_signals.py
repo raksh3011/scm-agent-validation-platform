@@ -10,16 +10,8 @@ from .static_analyzer import RepoFacts, FileFact
 
 
 def _content_for_analysis(root: Path, files: list[FileFact]) -> str:
-    """Concatenate all code files for pattern matching."""
-    content = ""
-    for f in files:
-        try:
-            path = root / f.rel_path
-            content += path.read_text(encoding="utf-8", errors="ignore")
-            content += "\n"
-        except Exception:
-            pass
-    return content.lower()
+    """Lowercased concatenation of the given files' already-cached content (no disk re-reads)."""
+    return "\n".join(f.content for f in files if f.content).lower()
 
 
 # ---- Structural / Architectural signals ----
@@ -27,14 +19,14 @@ def _content_for_analysis(root: Path, files: list[FileFact]) -> str:
 def detect_perceive_decide_act_structure(facts: RepoFacts) -> list[str]:
     """Agent has clearly separated perceive, decide, act phases."""
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
-    # Look for function names matching the pattern
-    if re.search(r"\bdef\s+(perceive|sense|read|load|fetch)[\s\(]", content):
+    # Look for explicit agent-phase function names (not generic read/load which match anything)
+    if re.search(r"\bdef\s+(perceive|sense)[\s\(]", content):
         signals.append("Perceive phase function detected")
-    if re.search(r"\bdef\s+(decide|judge|plan|score|recommend)[\s\(]", content):
+    if re.search(r"\bdef\s+(decide|judge|recommend)[\s\(]", content):
         signals.append("Decide phase function detected")
-    if re.search(r"\bdef\s+(act|execute|apply|output|send)[\s\(]", content):
+    if re.search(r"\bdef\s+(act|execute|apply)[\s\(]", content):
         signals.append("Act phase function detected")
 
     # Look for section comments
@@ -47,7 +39,7 @@ def detect_perceive_decide_act_structure(facts: RepoFacts) -> list[str]:
 def detect_isolated_judgment_seams(facts: RepoFacts) -> list[str]:
     """AI/LLM judgment is isolated in dedicated functions, not mixed with core logic."""
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
     # LLM calls isolated in named functions
     if re.search(r"def\s+\w*llm\w*\s*\(", content) or re.search(r"def\s+\w*predict\w*\s*\(", content):
@@ -67,17 +59,13 @@ def detect_isolated_judgment_seams(facts: RepoFacts) -> list[str]:
 def detect_deterministic_core_logic(facts: RepoFacts) -> list[str]:
     """Core decision logic is deterministic (arithmetic, rule-based, not LLM-driven)."""
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
-    # Arithmetic patterns typical of supply chain (ROP, safety stock, lead time)
-    if re.search(r"(rop|reorder.point|lead.time|safety.stock|demand)", content):
+    # Arithmetic specific to supply chain (require the genuinely SCM terms, not bare "demand")
+    if re.search(r"(reorder.?point|\brop\b|lead.?time|safety.?stock)", content):
         signals.append("Supply chain arithmetic patterns detected (ROP, lead time, safety stock)")
 
-    # Weighted scoring / rule-based logic
-    if re.search(r"(weight|score|rank|max|min)", content) and re.search(r"[\*\+\-/]", content):
-        signals.append("Rule-based or weighted scoring logic detected")
-
-    # Min/max supplier selection patterns
+    # Min/max option selection with an explicit key function (a real selection pattern)
     if re.search(r"(min|max)\s*\(\s*\w+\s*,\s*key", content):
         signals.append("Deterministic supplier/option selection (min/max) detected")
 
@@ -91,15 +79,13 @@ def detect_documented_objectives(facts: RepoFacts) -> list[str]:
     if facts.has_readme:
         signals.append("README/documentation present describing agent purpose")
 
-    content = _content_for_analysis(facts.root, facts.files)
-
-    # Module docstring
-    if re.search(r'""".*?"""', content, re.DOTALL) or re.search(r"'''.*?'''", content, re.DOTALL):
-        signals.append("Module docstring or extensive comments documenting objective")
-
-    # Section comments explaining flow
-    if content.count("#") > 20:
-        signals.append("Inline comments explaining logic and decisions")
+    # A genuine module docstring: a triple-quoted block within the first ~30 lines of some file.
+    has_module_docstring = any(
+        bool(re.match(r'\s*("""|\'\'\')', "\n".join(f.content.splitlines()[:30])))
+        for f in facts.files if f.content
+    )
+    if has_module_docstring:
+        signals.append("Module docstring documenting objective")
 
     return signals
 
@@ -107,7 +93,7 @@ def detect_documented_objectives(facts: RepoFacts) -> list[str]:
 def detect_auditable_outputs(facts: RepoFacts) -> list[str]:
     """Agent returns decision reasoning, not just actions."""
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
     # Return dict with multiple fields including reasoning
     if re.search(r'return\s*\{[^}]*"(why|reason|explain|justif)', content):
@@ -129,7 +115,7 @@ def detect_auditable_outputs(facts: RepoFacts) -> list[str]:
 def detect_scm_patterns(facts: RepoFacts) -> list[str]:
     """Agent implements classic SCM decision patterns correctly."""
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
     # Reorder point logic
     if re.search(r"(rop|reorder.point)\s*=.*lead", content):
@@ -171,15 +157,15 @@ def detect_error_handling_patterns(facts: RepoFacts) -> list[str]:
 
 
 def detect_mock_mode(facts: RepoFacts) -> list[str]:
-    """Agent supports mock/demo mode without external calls."""
+    """Agent supports mock/demo mode without external calls.
+
+    Requires an explicit runtime toggle (live/mock flag), not just the word
+    'test' appearing somewhere -- otherwise every repo trivially qualifies.
+    """
     signals = []
-    content = _content_for_analysis(facts.root, facts.files)
+    content = facts.corpus_lower
 
-    if re.search(r"(mock|demo|test|recorded|default)", content):
-        signals.append("Mock/test mode with recorded decisions available")
-
-    # Conditional LLM vs mock
-    if re.search(r"if.*live|if.*mock", content):
+    if re.search(r"if\s+live\b|if\s+not\s+live\b|if\s+\w*mock\b|live\s*=\s*(true|false)|mode\s*==\s*[\"']mock", content):
         signals.append("Mock vs live mode selectable at runtime")
 
     return signals
