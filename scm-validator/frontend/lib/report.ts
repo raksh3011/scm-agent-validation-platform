@@ -92,6 +92,56 @@ export function buildReportHtml(result: ValidationResult): string {
     ? `<section><h2>AI Insights</h2><ul>${result.ai_insights.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></section>`
     : "";
 
+  const ADAPTER_STATUS_LABEL: Record<string, string> = {
+    loaded: "Submitted adapter loaded",
+    auto_generated: "Adapter auto-generated from detected entrypoint",
+    failed: "No agent could be executed",
+    not_attempted: "Not attempted",
+  };
+
+  function passFailBadge(passed: boolean): string {
+    return `<span class="sev" style="background:${passed ? "#16a34a" : "#dc2626"}">${passed ? "PASS" : "FAIL"}</span>`;
+  }
+
+  const invariantCards = result.invariant_results
+    .map(
+      (inv) => `
+      <div class="finding">
+        <div class="finding-head">${passFailBadge(inv.passed)}<strong>${esc(inv.test_id)}</strong></div>
+        <p class="why">${esc(inv.detail)}</p>
+      </div>`
+    )
+    .join("");
+
+  const scenarioCards = (tier: "required" | "recommended") =>
+    result.scenario_results
+      .filter((s) => s.tier === tier)
+      .map(
+        (sc) => `
+      <div class="finding">
+        <div class="finding-head">${passFailBadge(sc.passed)}<strong>${esc(sc.scenario_id)} — ${esc(sc.description)}</strong></div>
+        <p class="why">${esc(sc.detail)}</p>
+        ${!sc.passed ? `<div class="evidence">Expected: ${esc(JSON.stringify(sc.expected))}<br/>Actual: ${esc(JSON.stringify(sc.actual))}</div>` : ""}
+      </div>`
+      )
+      .join("");
+
+  const requiredCount = result.scenario_results.filter((s) => s.tier === "required");
+  const recommendedCount = result.scenario_results.filter((s) => s.tier === "recommended");
+  const invariantPassCount = result.invariant_results.filter((i) => i.passed).length;
+
+  const harnessSection = `
+  <section>
+    <h2>Trust Harness — Execution-Based Behavior (dominant signal, 75% of overall)</h2>
+    <p class="why"><strong>Adapter status:</strong> ${esc(ADAPTER_STATUS_LABEL[result.adapter_status] ?? result.adapter_status)}</p>
+    ${result.adapter_status === "failed" ? `<p class="why" style="color:#dc2626">No agent could be executed for this submission, so the overall trust score is forced to 0 regardless of the hygiene score below.</p>` : ""}
+    <h3 style="margin-bottom:4px">Invariant Tests (${invariantPassCount}/${result.invariant_results.length} passed)</h3>
+    ${invariantCards || "<p>No invariant tests ran.</p>"}
+    <h3 style="margin-bottom:4px">Golden Scenarios — Required (${requiredCount.filter((s) => s.passed).length}/${requiredCount.length} passed)</h3>
+    ${scenarioCards("required") || "<p>No required scenarios ran.</p>"}
+    ${recommendedCount.length > 0 ? `<h3 style="margin-bottom:4px">Golden Scenarios — Recommended (${recommendedCount.filter((s) => s.passed).length}/${recommendedCount.length} passed)</h3>${scenarioCards("recommended")}` : ""}
+  </section>`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,10 +190,20 @@ export function buildReportHtml(result: ValidationResult): string {
       <span class="label">Production Readiness</span>
       <span class="value" style="color:${readinessColor(summary.production_readiness ?? "")}">${esc(summary.production_readiness ?? "—")}</span>
     </div>
+    <div class="pill">
+      <span class="label">Hygiene (static rules)</span>
+      <span class="value">${summary.hygiene_score ?? "—"}/100</span>
+    </div>
+    <div class="pill">
+      <span class="label">Behavior (executed scenarios)</span>
+      <span class="value">${summary.behavior_score ?? "—"}/100</span>
+    </div>
   </div>
 
+  ${harnessSection}
+
   <section>
-    <h2>Trust Score Breakdown</h2>
+    <h2>Static Rule Breakdown (secondary signal)</h2>
     <table>
       <thead><tr><th>Dimension</th><th style="text-align:right">Score</th><th></th><th>Notes</th></tr></thead>
       <tbody>${breakdownRows}</tbody>

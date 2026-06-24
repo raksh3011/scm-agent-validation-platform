@@ -3,12 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getRunResults } from "../../../../lib/api";
-import { Evidence, Finding, Severity, ValidationResult } from "../../../../lib/types";
+import { Evidence, Finding, InvariantResult, ScenarioResult, Severity, ValidationResult } from "../../../../lib/types";
 import ScoreBar from "../../../../components/ScoreBar";
 import { SeverityBadge, DemoReadinessBadge, ProductionReadinessBadge } from "../../../../components/Badges";
 import DownloadReport from "../../../../components/DownloadReport";
 
-type Tab = "overview" | "signals" | "defects" | "corrections" | "evidence" | "insights";
+type Tab = "overview" | "harness" | "signals" | "defects" | "corrections" | "evidence" | "insights";
+
+const ADAPTER_STATUS_LABEL: Record<string, string> = {
+  loaded: "Submitted adapter loaded",
+  auto_generated: "Adapter auto-generated from detected entrypoint",
+  failed: "No agent could be executed",
+  not_attempted: "Not attempted",
+};
 
 const SEVERITY_ORDER: Severity[] = ["Critical", "High", "Medium", "Low"];
 
@@ -65,6 +72,12 @@ export default function ResultsPage() {
 
       <div className="tabs">
         <TabBtn tab="overview" active={tab} onClick={setTab} label="Overview" />
+        <TabBtn
+          tab="harness"
+          active={tab}
+          onClick={setTab}
+          label={`Trust Harness (${result.invariant_results.filter((r) => r.passed).length + result.scenario_results.filter((r) => r.passed).length}/${result.invariant_results.length + result.scenario_results.length})`}
+        />
         <TabBtn tab="signals" active={tab} onClick={setTab} label={`Positive Signals (${result.positive_signals.length})`} />
         <TabBtn tab="defects" active={tab} onClick={setTab} label={`Defects (${result.findings.length})`} />
         <TabBtn tab="corrections" active={tab} onClick={setTab} label={`Corrections (${result.recommendations.length})`} />
@@ -73,6 +86,7 @@ export default function ResultsPage() {
       </div>
 
       {tab === "overview" && <Overview result={result} />}
+      {tab === "harness" && <TrustHarness result={result} />}
       {tab === "signals" && <PositiveSignals signals={result.positive_signals} />}
       {tab === "defects" && <Defects findings={result.findings} evidenceById={evidenceById} />}
       {tab === "corrections" && <Corrections result={result} />}
@@ -114,12 +128,32 @@ function SummaryHeader({ result }: { result: ValidationResult }) {
       <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
         <DemoReadinessBadge value={summary.demo_readiness} />
         <ProductionReadinessBadge value={summary.production_readiness} />
-        {(summary.hygiene_score != null || summary.behavior_score != null) && (
-          <span className="small muted" style={{ marginLeft: 8 }}>
-            Hygiene (static rules): <strong>{summary.hygiene_score ?? "—"}</strong> · Behavior (executed scenarios): <strong>{summary.behavior_score ?? "—"}</strong>
-          </span>
-        )}
       </div>
+
+      {(summary.hygiene_score != null || summary.behavior_score != null) && (
+        <div className="grid-2" style={{ marginTop: 16 }}>
+          <div className="card" style={{ background: "#f8fafc" }}>
+            <div className="small muted" style={{ marginBottom: 4 }}>Hygiene score — static code rules (secondary signal)</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.hygiene_score ?? "—"}<span className="small muted">/100</span></div>
+          </div>
+          <div className="card" style={{ background: "#f8fafc" }}>
+            <div className="small muted" style={{ marginBottom: 4 }}>Behavior score — executed SCM decisions (dominant signal, 75% of overall)</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{summary.behavior_score ?? "—"}<span className="small muted">/100</span></div>
+          </div>
+        </div>
+      )}
+
+      {result.adapter_status === "failed" && (
+        <div className="card" style={{ background: "#fef2f2", borderColor: "#fecaca", marginTop: 16 }}>
+          <strong style={{ color: "var(--critical)" }}>No agent could be executed</strong>
+          <p className="small" style={{ margin: "6px 0 0" }}>
+            The platform could not find or run a decision function for this submission, so the trust score is
+            forced to 0 regardless of how clean the static code looks — a clean hygiene score with no behavior
+            evidence is not a trustworthy agent. See the Trust Harness tab for details, or add a{" "}
+            <code>scm_adapter.py</code> exposing <code>run_decision(scenario)</code> at the repository root.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -185,6 +219,105 @@ function Overview({ result }: { result: ValidationResult }) {
         </div>
       </div>
     </>
+  );
+}
+
+function PassFailBadge({ passed }: { passed: boolean }) {
+  return (
+    <span
+      className="badge"
+      style={{ background: passed ? "#dcfce7" : "#fee2e2", color: passed ? "var(--success)" : "var(--critical)" }}
+    >
+      {passed ? "PASS" : "FAIL"}
+    </span>
+  );
+}
+
+function TrustHarness({ result }: { result: ValidationResult }) {
+  const invariants = result.invariant_results;
+  const scenarios = result.scenario_results;
+  const requiredScenarios = scenarios.filter((s) => s.tier === "required");
+  const recommendedScenarios = scenarios.filter((s) => s.tier === "recommended");
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <strong>Adapter status: {ADAPTER_STATUS_LABEL[result.adapter_status] ?? result.adapter_status}</strong>
+        <p className="small muted" style={{ margin: "6px 0 0" }}>
+          {result.adapter_status === "loaded" &&
+            "This submission provided its own scm_adapter.py, which the harness called directly."}
+          {result.adapter_status === "auto_generated" &&
+            "No scm_adapter.py was found, so the platform detected the most likely decision function and " +
+            "auto-generated a best-effort bridge to call it. Review the detected mapping if results look off."}
+          {result.adapter_status === "failed" &&
+            "Neither a submitted adapter nor a confident auto-detected entrypoint could be executed. " +
+            "Behavior score is 0 and the overall trust score is forced to 0."}
+        </p>
+      </div>
+
+      <h3>Invariant Tests ({invariants.filter((i) => i.passed).length}/{invariants.length} passed)</h3>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Each test runs the agent's actual decision function against systematically varied scenarios and checks
+        a relationship every correct SCM agent must satisfy (e.g. reorder point must rise with lead time, a
+        worse-on-every-axis supplier must never be chosen).
+      </p>
+      <div style={{ marginBottom: 28 }}>
+        {invariants.length === 0 && <p className="muted small">No invariant tests ran for this submission.</p>}
+        {invariants.map((inv) => <InvariantCard key={inv.test_id} inv={inv} />)}
+      </div>
+
+      <h3>Golden Scenarios — Required ({requiredScenarios.filter((s) => s.passed).length}/{requiredScenarios.length} passed)</h3>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Hand-verified scenarios with known-correct expected decisions (reorder math, HOLD vs REORDER, supplier
+        eligibility by SKU, Pareto dominance, degenerate inputs). A single failure here caps the behavior score
+        at 40, regardless of how many other scenarios pass.
+      </p>
+      <div style={{ marginBottom: 28 }}>
+        {requiredScenarios.map((sc) => <ScenarioCard key={sc.scenario_id} sc={sc} />)}
+      </div>
+
+      {recommendedScenarios.length > 0 && (
+        <>
+          <h3>Golden Scenarios — Recommended ({recommendedScenarios.filter((s) => s.passed).length}/{recommendedScenarios.length} passed)</h3>
+          <p className="small muted" style={{ marginTop: 0 }}>
+            Good practice, not a hard blocker — e.g. respecting a supplier's minimum order quantity.
+          </p>
+          <div>
+            {recommendedScenarios.map((sc) => <ScenarioCard key={sc.scenario_id} sc={sc} />)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function InvariantCard({ inv }: { inv: InvariantResult }) {
+  return (
+    <div className="card" style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <strong className="small">{inv.test_id}</strong>
+        <PassFailBadge passed={inv.passed} />
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>{inv.detail}</p>
+    </div>
+  );
+}
+
+function ScenarioCard({ sc }: { sc: ScenarioResult }) {
+  return (
+    <div className="card" style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <strong className="small">{sc.scenario_id} — {sc.description}</strong>
+        <PassFailBadge passed={sc.passed} />
+      </div>
+      <p className="small muted" style={{ margin: "0 0 6px" }}>{sc.detail}</p>
+      {!sc.passed && (
+        <div className="small" style={{ display: "flex", gap: 16 }}>
+          <div><strong>Expected:</strong> <code>{JSON.stringify(sc.expected)}</code></div>
+          <div><strong>Actual:</strong> <code>{JSON.stringify(sc.actual)}</code></div>
+        </div>
+      )}
+    </div>
   );
 }
 

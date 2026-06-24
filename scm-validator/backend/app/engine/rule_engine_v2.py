@@ -250,20 +250,234 @@ def check_database_connection_not_closed(facts: RepoFacts) -> list[RawFinding]:
 
 # ---- SCM Logic Quality ----
 
-def check_supplier_selection_too_generic(facts: RepoFacts) -> list[RawFinding]:
+def check_reorder_point_formula(facts: RepoFacts) -> list[RawFinding]:
+    """Missing or incorrect Reorder Point (ROP) formula: ROP = (demand × lead_time) + safety_stock."""
+    content = facts.corpus_lower
+    findings = []
+    
+    # Check if agent deals with reordering
+    if not re.search(r"(reorder|replenish|procurement|purchase)", content):
+        return []
+    
+    # Look for ROP calculation
+    has_rop_var = bool(re.search(r"\brop\b|reorder[_\s]?point", content))
+    has_formula = bool(re.search(r"(demand|sales)[\s\S]{0,80}(lead[_\s]?time|leadtime)[\s\S]{0,80}(safety[_\s]?stock|buffer)", content))
+    
+    if has_rop_var and not has_formula:
+        findings.append(_f(
+            "SCM_MISSING_ROP_FORMULA", "Critical", "SCM Logic Quality",
+            "Reorder Point calculation missing standard formula components",
+            "Agent appears to calculate reorder points but doesn't use the standard formula: ROP = (demand × lead_time) + safety_stock.",
+            "Incorrect ROP calculations lead to stockouts or excessive inventory costs.",
+            evidence=[{"file_path": "<repo>", "reason": "ROP variable found but formula components missing"}],
+        ))
+    elif not has_rop_var and re.search(r"(stock|inventory)[\s\S]{0,40}(low|empty|zero|<|<=)", content):
+        findings.append(_f(
+            "SCM_NO_ROP_CALCULATION", "High", "SCM Logic Quality",
+            "No Reorder Point (ROP) calculation detected",
+            "Agent checks stock levels but doesn't calculate a proper Reorder Point based on demand, lead time, and safety stock.",
+            "Ad-hoc thresholds ignore demand variability and supplier lead times, causing stockouts.",
+            evidence=[{"file_path": "<repo>", "reason": "stock checks without ROP formula"}],
+        ))
+    
+    return findings
+
+
+def check_demand_forecasting_isolation(facts: RepoFacts) -> list[RawFinding]:
+    """Demand forecasting not isolated from arithmetic calculations."""
+    content = facts.corpus_lower
+    findings = []
+    
+    # Check if agent does demand forecasting
+    if not re.search(r"(forecast|predict|demand|sales)", content):
+        return []
+    
+    # Look for LLM-based prediction
+    has_llm_predict = bool(re.search(r"(predict|forecast)[\s\S]{0,200}(llm|gpt|claude|openai|anthropic)", content))
+    
+    if has_llm_predict:
+        # Check if prediction is isolated in a separate function
+        has_isolation = bool(re.search(r"def\s+(predict|forecast)[\s\S]{0,40}\(", content))
+        
+        if not has_isolation:
+            findings.append(_f(
+                "SCM_NO_DEMAND_ISOLATION", "High", "SCM Logic Quality",
+                "Demand prediction not isolated from core arithmetic",
+                "LLM-based demand forecasting is mixed with reorder calculations, making it impossible to test the formula independently.",
+                "Cannot validate arithmetic correctness separately from AI judgment quality. A wrong demand multiplier flows through a perfect formula undetected.",
+                evidence=[{"file_path": "<repo>", "reason": "LLM demand prediction not in isolated function"}],
+            ))
+    
+    return findings
+
+
+def check_supplier_selection_criteria(facts: RepoFacts) -> list[RawFinding]:
+    """Supplier selection doesn't consider multiple criteria (price, lead time, reliability)."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(choose|select|pick)[\s\S]{0,60}supplier", content):
+        return []
+    
+    has_price = bool(re.search(r"(price|cost|unit[_\s]?price)", content))
+    has_lead_time = bool(re.search(r"lead[_\s]?time|delivery", content))
+    has_reliability = bool(re.search(r"(reliab|on[_\s]?time|quality)", content))
+    
+    criteria_count = sum([has_price, has_lead_time, has_reliability])
+    
+    if criteria_count == 0:
+        findings.append(_f(
+            "SCM_NO_SUPPLIER_CRITERIA", "Critical", "SCM Logic Quality",
+            "Supplier selection has no clear evaluation criteria",
+            "Agent selects suppliers without considering price, lead time, or reliability metrics.",
+            "Random or first-available supplier selection leads to cost overruns and delivery failures.",
+            evidence=[{"file_path": "<repo>", "reason": "supplier selection without evaluation criteria"}],
+        ))
+    elif criteria_count == 1 and has_price:
+        findings.append(_f(
+            "SCM_PRICE_ONLY_SUPPLIER", "High", "SCM Logic Quality",
+            "Supplier selection based on price alone",
+            "Agent chooses suppliers by price only, ignoring lead time and reliability.",
+            "Cheapest supplier may be slowest or least reliable, causing stockouts and disruptions.",
+            evidence=[{"file_path": "<repo>", "reason": "only price criterion detected"}],
+        ))
+    elif criteria_count < 2:
+        findings.append(_f(
+            "SCM_INSUFFICIENT_SUPPLIER_CRITERIA", "Medium", "SCM Logic Quality",
+            "Supplier selection considers too few criteria",
+            f"Agent evaluates suppliers on only {criteria_count} criterion/criteria. Best practice requires price, lead time, and reliability.",
+            "Single-criterion decisions miss trade-offs between cost, speed, and risk.",
+            evidence=[{"file_path": "<repo>", "reason": f"only {criteria_count} of 3 key criteria found"}],
+        ))
+    
+    return findings
+
+
+def check_safety_stock_consideration(facts: RepoFacts) -> list[RawFinding]:
+    """No safety stock buffer in inventory calculations."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(inventory|stock|reorder)", content):
+        return []
+    
+    has_safety_stock = bool(re.search(r"safety[_\s]?stock|buffer[_\s]?stock|ss\b", content))
+    
+    if not has_safety_stock:
+        findings.append(_f(
+            "SCM_NO_SAFETY_STOCK", "High", "SCM Logic Quality",
+            "No safety stock buffer in reorder calculations",
+            "Agent calculates reorder quantities without including safety stock to buffer against demand variability.",
+            "Increased risk of stockouts during demand spikes or supplier delays.",
+            evidence=[{"file_path": "<repo>", "reason": "no safety stock variable or buffer detected"}],
+        ))
+    
+    return findings
+
+
+def check_demand_bounds_validation(facts: RepoFacts) -> list[RawFinding]:
+    """Demand multiplier or forecast not bounded to prevent extreme values."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(multiplier|forecast|predict|demand[\s\S]{0,40}adjust)", content):
+        return []
+    
+    has_bounds = bool(re.search(r"(min\(|max\(|clamp|bound|\b0\.5\b|\b3\.0\b|>.*and.*<)", content))
+    
+    if not has_bounds:
+        findings.append(_f(
+            "SCM_NO_DEMAND_BOUNDS", "Critical", "SCM Logic Quality",
+            "Demand multiplier not bounded to prevent extreme values",
+            "LLM-generated demand multipliers are not clamped to reasonable bounds (e.g., 0.5-3.0). Extreme values could cause massive over-ordering or stockouts.",
+            "A multiplier of 0 causes zero orders (stockout). A multiplier of 100 causes massive financial exposure.",
+            evidence=[{"file_path": "<repo>", "reason": "demand multiplier without bounds checking"}],
+        ))
+    
+    return findings
+
+
+def check_idempotency_protection(facts: RepoFacts) -> list[RawFinding]:
+    """No idempotency check to prevent duplicate orders."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(order|purchase|po\b|procurement)", content):
+        return []
+    
+    has_idempotency = bool(re.search(r"(on[_\s]?order|already[_\s]?ordered|pending|order[_\s]?status|duplicate)", content))
+    
+    if not has_idempotency:
+        findings.append(_f(
+            "SCM_NO_IDEMPOTENCY", "Critical", "SCM Logic Quality",
+            "No idempotency check to prevent duplicate purchase orders",
+            "Agent doesn't check if a product is already on order before creating a new PO. Running twice creates duplicate orders.",
+            "Double-ordering causes inventory bloat, wasted spend, and operational chaos.",
+            evidence=[{"file_path": "<repo>", "reason": "no order status or duplicate check detected"}],
+        ))
+    
+    return findings
+
+
+def check_cost_calculation_transparency(facts: RepoFacts) -> list[RawFinding]:
+    """Order cost calculation not transparent or auditable."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(order|purchase|cost|total|price)", content):
+        return []
+    
+    has_cost_calc = bool(re.search(r"(total|cost)[\s\S]{0,40}=[\s\S]{0,40}(price|qty|quantity)", content))
+    has_cost_log = bool(re.search(r"(log|print|audit)[\s\S]{0,60}(total|cost|price)", content))
+    
+    if has_cost_calc and not has_cost_log:
+        findings.append(_f(
+            "SCM_NO_COST_AUDIT", "Medium", "SCM Logic Quality",
+            "Order cost not logged for financial audit trail",
+            "Agent calculates order costs but doesn't log them for financial review.",
+            "Finance team cannot audit AI spending decisions or track budget impact.",
+            evidence=[{"file_path": "<repo>", "reason": "cost calculation without logging"}],
+        ))
+    
+    return findings
+
+
+def check_supplier_eligibility(facts: RepoFacts) -> list[RawFinding]:
     """Supplier selection doesn't check product-supplier compatibility."""
     content = facts.corpus_lower
     if re.search(r"(choose|select|pick)[\s\S]{0,40}supplier", content):
-        has_eligibility = bool(re.search(r"(sku|product[_\s]?id|eligib|compat|can[_\s]?supply)", content))
+        has_eligibility = bool(re.search(r"(sku|product[_\s]?id|eligib|compat|can[_\s]?supply|approved)", content))
         if not has_eligibility:
             return [_f(
                 "SCM_NO_SUPPLIER_ELIGIBILITY", "Medium", "SCM Logic Quality",
                 "Supplier selection doesn't validate product-supplier compatibility",
-                "The agent picks suppliers without checking whether they supply the specific product/SKU.",
-                "The agent could place orders with suppliers that don't stock that product.",
+                "The agent picks suppliers without checking whether they supply the specific product/SKU or are approved.",
+                "The agent could place orders with suppliers that don't stock that product or aren't approved vendors.",
                 evidence=[{"file_path": "<repo>", "reason": "supplier selection lacks SKU/product eligibility check"}],
             )]
     return []
+
+
+def check_lead_time_in_rop(facts: RepoFacts) -> list[RawFinding]:
+    """Lead time not factored into reorder point calculation."""
+    content = facts.corpus_lower
+    findings = []
+    
+    if not re.search(r"(reorder|rop\b|replenish)", content):
+        return []
+    
+    has_lead_time = bool(re.search(r"lead[_\s]?time|leadtime|\blt\b", content))
+    
+    if not has_lead_time:
+        findings.append(_f(
+            "SCM_NO_LEAD_TIME", "Critical", "SCM Logic Quality",
+            "Lead time not included in reorder calculations",
+            "Agent calculates reorder points without considering supplier lead time. ROP formula requires: ROP = (demand × lead_time) + safety_stock.",
+            "Orders placed too late will arrive after stockout occurs.",
+            evidence=[{"file_path": "<repo>", "reason": "no lead time variable in reorder logic"}],
+        ))
+    
+    return findings
 
 
 # ---- Observability ----
@@ -295,7 +509,16 @@ ALL_RULES = [
     check_llm_call_retry,
     check_no_error_handling_critical_paths,
     check_database_connection_not_closed,
-    check_supplier_selection_too_generic,
+    # SCM-specific rules
+    check_reorder_point_formula,
+    check_demand_forecasting_isolation,
+    check_supplier_selection_criteria,
+    check_safety_stock_consideration,
+    check_demand_bounds_validation,
+    check_idempotency_protection,
+    check_cost_calculation_transparency,
+    check_supplier_eligibility,
+    check_lead_time_in_rop,
     check_no_logging,
 ]
 
