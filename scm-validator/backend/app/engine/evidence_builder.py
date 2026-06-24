@@ -1,7 +1,7 @@
 """Converts raw finding evidence dicts into stable Evidence records and wires evidence_refs by id."""
 import hashlib
 
-from .rule_engine import RawFinding
+from .rule_engine_v2 import RawFinding
 from ..report_schema import Evidence
 
 

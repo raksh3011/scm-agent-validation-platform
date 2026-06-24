@@ -1,7 +1,7 @@
 """Maps each rule_id to a concrete, actionable fix. Deterministic: same finding -> same recommendation text."""
 import hashlib
 
-from .rule_engine import RawFinding
+from .rule_engine_v2 import RawFinding
 from ..report_schema import Recommendation
 
 SEVERITY_TO_PRIORITY = {"Critical": "Immediate", "High": "High", "Medium": "Medium", "Low": "Low"}

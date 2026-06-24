@@ -8,3 +8,4 @@ scm-validator/backend/storage/workspaces/
 scm-validator/backend/storage/uploads/
 scm-validator/backend/storage/*.db
 scm-validator/backend/server.log
+scm-validator/backend/storage/test_workspace/

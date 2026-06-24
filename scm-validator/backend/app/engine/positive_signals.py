@@ -163,7 +163,8 @@ def detect_error_handling_patterns(facts: RepoFacts) -> list[str]:
     if any(f.has_try_except for f in code_files):
         signals.append("Try-except error handling present")
 
-    if any("assert" in open(f.rel_path, errors="ignore").read() for f in code_files if Path(f.rel_path).exists()):
+    content = _content_for_analysis(facts.root, code_files)
+    if re.search(r"\bassert\b", content):
         signals.append("Input validation / assertions present")
 
     return signals

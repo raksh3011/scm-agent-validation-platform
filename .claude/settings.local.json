@@ -26,7 +26,12 @@
       "Bash(curl -s http://localhost:8000/api/runs/a5c7e83a9282/status)",
       "Bash(./.venv/Scripts/python.exe -c ' *)",
       "Bash(./.venv/Scripts/python.exe)",
-      "Bash(curl -s -X POST http://localhost:8000/api/runs -F 'agent_name=Smart Reorder Agent \\(v2 engine\\)' -F 'use_case=Inventory reorder recommendation' -F files=@/c/Users/Sanjay/Desktop/SCM/smart_reorder_agent.py)"
+      "Bash(curl -s -X POST http://localhost:8000/api/runs -F 'agent_name=Smart Reorder Agent \\(v2 engine\\)' -F 'use_case=Inventory reorder recommendation' -F files=@/c/Users/Sanjay/Desktop/SCM/smart_reorder_agent.py)",
+      "Bash(rm -f storage/validator.db)",
+      "Bash(curl -s http://localhost:8000/api/runs/1561f24c902e/status)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(./.venv/Scripts/python.exe -c \"from app.main import app; print\\('imports OK'\\)\")"
     ]
   }
 }
