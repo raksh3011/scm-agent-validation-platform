@@ -11,7 +11,11 @@ app = FastAPI(title="SCM Agent Validation Platform API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://scm-ai-agents-validator.vercel.app",
+        "https://scm-ai-agents-validator-e382ke4x0-rakshakkm3011-9499s-projects.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
