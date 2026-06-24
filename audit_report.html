@@ -1,0 +1,103 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SCM Agent Audit Report</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
+            h1, h2, h3 { color: #2c3e50; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; }
+            .dashboard-header { display: flex; justify-content: space-between; align-items: center; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+            .score-card { text-align: center; }
+            .score-card .score { font-size: 54px; font-weight: bold; color: #007bff; }
+            .verdict-card { text-align: right; }
+            .verdict-card .rating { font-size: 32px; font-weight: bold; padding: 5px 15px; border-radius: 4px; display: inline-block; }
+            .rating-HIGH { background-color: #d4edda; color: #155724; }
+            .rating-MEDIUM { background-color: #fff3cd; color: #856404; }
+            .rating-LOW { background-color: #f8d7da; color: #721c24; }
+            
+            .section-box { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+            
+            .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+            .sub-score { background-color: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; }
+            .sub-score-val { font-size: 24px; font-weight: bold; color: #495057; }
+            
+            .architecture-layer { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8; }
+            .architecture-layer h3 { margin-top: 0; color: #17a2b8; border-bottom: none; }
+            
+            .risks { background-color: #fff3f3; border-left: 4px solid #dc3545; padding: 15px; border-radius: 8px; }
+            .strengths { background-color: #f3fff5; border-left: 4px solid #28a745; padding: 15px; border-radius: 8px; }
+            ul { padding-left: 20px; margin-top: 10px; }
+            li { margin-bottom: 8px; }
+        </style>
+    </head>
+    <body>
+        <h1>SCM Agent Validation Dashboard</h1>
+        
+        <div class="dashboard-header">
+            <div class="score-card">
+                <h2>Overall Trust Score</h2>
+                <div class="score">0/100</div>
+                <p>Weighted average of SCM trust pillars</p>
+            </div>
+            <div class="verdict-card">
+                <h2>Final Verdict</h2>
+                <div class="rating rating-UNKNOWN">UNKNOWN</div>
+            </div>
+        </div>
+        
+        <div class="section-box">
+            <h2>Executive Summary</h2>
+            <p><strong>Classification:</strong> Unknown (Confidence: 0.0)</p>
+            <p>N/A</p>
+            <p><strong>Verdict Summary:</strong> N/A</p>
+        </div>
+        
+        <h2>Trust Score Breakdown</h2>
+        <div class="grid-container">
+            <div class="sub-score"><div>Perception Trust</div><div class="sub-score-val">0</div></div>
+            <div class="sub-score"><div>Reasoning Trust</div><div class="sub-score-val">0</div></div>
+            <div class="sub-score"><div>Decision Trust</div><div class="sub-score-val">0</div></div>
+            <div class="sub-score"><div>Explainability</div><div class="sub-score-val">0</div></div>
+            <div class="sub-score"><div>Robustness</div><div class="sub-score-val">0</div></div>
+            <div class="sub-score"><div>Governance & Controls</div><div class="sub-score-val">0</div></div>
+        </div>
+        
+        <div class="grid-container">
+            <div class="risks">
+                <h2>SCM-Specific Risks (0)</h2>
+                <ul>
+                    
+                </ul>
+            </div>
+            <div class="strengths">
+                <h2>Strengths (2)</h2>
+                <ul>
+                    <li>Mock strength: Modular design.</li><li>Mock strength: Good AST usage.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section-box">
+            <h2>Architecture Analysis</h2>
+            <div class="architecture-layer">
+                <h3>Perception Layer</h3>
+                <ul></ul>
+            </div>
+            <div class="architecture-layer">
+                <h3>Judgment Layer</h3>
+                <ul></ul>
+            </div>
+            <div class="architecture-layer">
+                <h3>Decision Layer</h3>
+                <ul></ul>
+            </div>
+            <div class="architecture-layer">
+                <h3>Action Layer</h3>
+                <ul></ul>
+            </div>
+        </div>
+    </body>
+    </html>
+    

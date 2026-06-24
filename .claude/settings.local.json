@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/c/Users/Sanjay/Desktop/SCM\" && ls -la)",
+      "Bash(\"/c/Users/Sanjay/Desktop/SCM/.venv/Scripts/python.exe\" -m pip install -q -r requirements.txt)",
+      "Bash(python -m venv .venv)",
+      "Bash(./.venv/Scripts/python.exe -m pip install -q -r requirements.txt)",
+      "Bash(./.venv/Scripts/python.exe -c \"from app.main import app; print\\('OK'\\)\")",
+      "Bash(./.venv/Scripts/python.exe -m uvicorn app.main:app --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/health)",
+      "Bash(curl -s -X POST http://localhost:8000/api/runs -F 'agent_name=Smart Reorder Agent' -F 'use_case=Inventory reorder recommendation' -F files=@smart_reorder_agent.py)",
+      "Bash(curl -s http://localhost:8000/api/runs/f0e04ac2e060/status)",
+      "Bash(curl -s http://localhost:8000/api/runs/f0e04ac2e060/results)",
+      "Bash(npm -v)",
+      "Bash(mkdir -p \"/c/Users/Sanjay/Desktop/SCM/scm-validator/frontend/app/runs/[id]/progress\" \"/c/Users/Sanjay/Desktop/SCM/scm-validator/frontend/app/runs/[id]/results\" \"/c/Users/Sanjay/Desktop/SCM/scm-validator/frontend/app/history\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/new)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/history)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/runs/f0e04ac2e060/results\")",
+      "Bash(mkdir -p \"/c/Users/Sanjay/Desktop/SCM/.claude\" && ls \"/c/Users/Sanjay/Desktop/SCM/.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(powershell -Command \"Stop-Process -Id 23140 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)"
+    ]
+  }
+}

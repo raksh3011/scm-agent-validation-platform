@@ -1,0 +1,10 @@
+scm-validator/frontend/
+.venv/
+__pycache__/
+.cache/
+*.pyc
+scm-validator/backend/.venv/
+scm-validator/backend/storage/workspaces/
+scm-validator/backend/storage/uploads/
+scm-validator/backend/storage/*.db
+scm-validator/backend/server.log

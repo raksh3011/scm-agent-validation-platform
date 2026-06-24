@@ -1,0 +1,11 @@
+{
+  "defects": [
+    "Mock defect: Missing validation.",
+    "Mock defect: Hardcoded paths."
+  ],
+  "strengths": [
+    "Mock strength: Modular design.",
+    "Mock strength: Good AST usage."
+  ],
+  "trust_score": 0
+}
