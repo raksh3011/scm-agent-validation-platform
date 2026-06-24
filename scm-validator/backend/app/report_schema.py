@@ -4,18 +4,19 @@ from typing import Optional, Literal
 from pydantic import BaseModel
 
 Severity = Literal["Critical", "High", "Medium", "Low"]
-Verdict = Literal["Demo Ready", "Conditionally Ready", "High Risk"]
+DemoReadiness = Literal["Demo Ready", "Conditionally Ready", "Not Ready"]
+ProductionReadiness = Literal["Production Ready", "Requires Hardening", "Not Ready"]
 RunStatus = Literal["queued", "running", "completed", "failed"]
 Priority = Literal["Immediate", "High", "Medium", "Low"]
 
 DIMENSIONS = [
     "Specification Completeness",
-    "Implementation Hygiene",
     "Reliability & Error Handling",
-    "Security Hygiene",
-    "Input / Output Contract Clarity",
+    "AI/LLM Risk Controls",
+    "SCM Logic Quality",
     "Observability / Traceability",
-    "SCM Readiness / Business Fit",
+    "Demo Readiness",
+    "Production Readiness",
 ]
 
 
@@ -60,13 +61,15 @@ class Summary(BaseModel):
     run_id: str
     timestamp: str
     overall_trust_score: float
-    verdict: Verdict
+    demo_readiness: DemoReadiness
+    production_readiness: ProductionReadiness
     status: RunStatus
 
 
 class ValidationResult(BaseModel):
     summary: Summary
     score_breakdown: list[ScoreBreakdownItem]
+    positive_signals: list[str] = []
     findings: list[Finding]
     recommendations: list[Recommendation]
     evidence: list[Evidence]

@@ -121,14 +121,18 @@ def get_results(run_id: str):
         rec_rows = conn.execute("SELECT * FROM recommendations WHERE run_id=?", (run_id,)).fetchall()
         evidence_rows = conn.execute("SELECT * FROM evidence WHERE run_id=?", (run_id,)).fetchall()
         insight_rows = conn.execute("SELECT insight FROM ai_insights WHERE run_id=?", (run_id,)).fetchall()
+        signal_rows = conn.execute("SELECT signal FROM positive_signals WHERE run_id=?", (run_id,)).fetchall()
 
     return ValidationResult(
         summary=Summary(
             agent_name=run["agent_name"], run_id=run_id, timestamp=run["updated_at"],
-            overall_trust_score=run["overall_trust_score"] or 0, verdict=run["verdict"] or "High Risk",
+            overall_trust_score=run["overall_trust_score"] or 0,
+            demo_readiness=run["demo_readiness"] or "Not Ready",
+            production_readiness=run["production_readiness"] or "Not Ready",
             status=run["status"],
         ),
         score_breakdown=[ScoreBreakdownItem(dimension=r["dimension"], score=r["score"], max_score=r["max_score"], remarks=r["remarks"]) for r in breakdown_rows],
+        positive_signals=[r["signal"] for r in signal_rows],
         findings=[Finding(id=r["id"], severity=r["severity"], category=r["category"], title=r["title"],
                            description=r["description"], why_it_matters=r["why_it_matters"], score_impact=r["score_impact"],
                            evidence_refs=db.load_refs(r["evidence_refs"])) for r in finding_rows],
@@ -145,6 +149,6 @@ def get_results(run_id: str):
 def list_runs():
     with db.get_conn() as conn:
         rows = conn.execute(
-            "SELECT run_id, agent_name, source_type, status, overall_trust_score, verdict, created_at FROM runs ORDER BY created_at DESC"
+            "SELECT run_id, agent_name, source_type, status, overall_trust_score, demo_readiness, production_readiness, created_at FROM runs ORDER BY created_at DESC"
         ).fetchall()
     return [dict(r) for r in rows]

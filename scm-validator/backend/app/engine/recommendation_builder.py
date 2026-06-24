@@ -17,60 +17,55 @@ FIX_LIBRARY: dict[str, dict] = {
         recommendation="Add a requirements.txt (or pyproject.toml/package.json) pinning the exact libraries and versions the agent needs to run.",
         impact="Specification Completeness",
     ),
-    "SPEC_NO_USE_CASE": dict(
-        title="Declare the SCM use case explicitly",
-        recommendation="Provide a one-paragraph use case statement at submission time (or in the README) naming the SCM process this agent supports, e.g. 'inventory reorder recommendation for retail SKUs'.",
+    "SPEC_NO_IO_CONTRACT": dict(
+        title="Document the input/output contract",
+        recommendation="Add a docstring, type hints, or comments describing what the agent expects as input and what it outputs. Include field names, types, and valid ranges where relevant.",
         impact="Specification Completeness",
     ),
-    "IMPL_NO_ENTRYPOINT": dict(
-        title="Add a clear entrypoint file",
-        recommendation="Add a main.py / app.py / run.py that is the single documented place execution starts, and reference it in the README.",
-        impact="Implementation Hygiene",
+    "LLM_FRAGILE_JSON_PARSING": dict(
+        title="Wrap LLM JSON parsing in error handling and validation",
+        recommendation="Replace string slicing with try/except around json.loads(). Better: use a JSON decoder that returns error details on malformed input. Consider using regex to extract JSON more robustly.",
+        impact="AI/LLM Risk Controls",
     ),
-    "IMPL_SYNTAX_ERROR": dict(
-        title="Fix the syntax error before resubmitting",
-        recommendation="Run the file through a Python interpreter or linter locally and resolve the reported syntax error; this file cannot be evaluated further until it parses.",
-        impact="Implementation Hygiene",
+    "LLM_NO_OUTPUT_VALIDATION": dict(
+        title="Add bounds checking / clamping for LLM-generated values",
+        recommendation="If LLM generates numeric values (multiplier, quantity, price), clamp them to valid ranges. E.g., demand_multiplier = max(0.5, min(2.0, llm_multiplier)). Log any clamping action.",
+        impact="AI/LLM Risk Controls",
     ),
-    "IMPL_EMPTY_FILE": dict(
-        title="Remove or populate the empty file",
-        recommendation="Either implement the intended contents of this file or remove it from the submission to avoid confusion about unfinished functionality.",
-        impact="Implementation Hygiene",
+    "LLM_NO_ERROR_HANDLING": dict(
+        title="Add try/except around LLM API calls",
+        recommendation="Wrap the LLM client call (client.messages.create, etc.) in a try/except block. On exception, log the error and return a fallback decision or raise with a clear message.",
+        impact="AI/LLM Risk Controls",
+    ),
+    "LLM_NO_TIMEOUT": dict(
+        title="Set explicit timeout on LLM API calls",
+        recommendation="Pass a timeout parameter (e.g., timeout=30) to the LLM API call. If the API doesn't respond within the timeout, catch the exception and fall back to a default decision.",
+        impact="AI/LLM Risk Controls",
+    ),
+    "LLM_NO_RETRY_FALLBACK": dict(
+        title="Add retry logic or fallback for LLM failures",
+        recommendation="Implement retry with exponential backoff (e.g., tenacity library) or a fallback path. Example: on LLM failure, use mock/deterministic demand multiplier instead of failing.",
+        impact="AI/LLM Risk Controls",
     ),
     "REL_NO_ERROR_HANDLING": dict(
-        title="Add error handling around external calls and decision logic",
-        recommendation="Wrap external API calls, file/DB I/O, and any decision-critical computation in try/except blocks that log the failure and fail safely (e.g. fall back to a conservative default decision) rather than crashing.",
+        title="Add try/except around database and file I/O",
+        recommendation="Wrap db.connect(), file operations, and external API calls in try/except blocks. Log errors and provide a safe fallback (e.g., return a conservative order recommendation).",
         impact="Reliability & Error Handling",
     ),
-    "REL_NO_RETRY_TIMEOUT": dict(
-        title="Add retry/backoff and explicit timeouts for external calls",
-        recommendation="Use a retry library (e.g. tenacity) with exponential backoff and set explicit timeout values on all network/API calls so the agent degrades gracefully instead of hanging.",
+    "REL_NO_DB_CLOSE": dict(
+        title="Explicitly close database connections or use context manager",
+        recommendation="Replace conn = db.connect(); ... conn.close() or use 'with' statement: with db.connect() as conn: ... This prevents resource leaks.",
         impact="Reliability & Error Handling",
     ),
-    "SEC_HARDCODED_SECRET": dict(
-        title="Remove hardcoded credential and rotate it",
-        recommendation="Remove the secret from source code, rotate/revoke the exposed credential immediately, and load it via environment variables or a secrets manager instead.",
-        impact="Security Hygiene",
-    ),
-    "SEC_NO_ENV_TEMPLATE": dict(
-        title="Add a .env.example template",
-        recommendation="Add a .env.example listing required environment variable names (without real values) so secrets are externalized by convention rather than hardcoded.",
-        impact="Security Hygiene",
-    ),
-    "IO_NO_SCHEMA": dict(
-        title="Define explicit input/output schemas",
-        recommendation="Add Pydantic models (Python) or TypedDicts/interfaces (TS) describing exact input and output fields, types, and required/optional status, and validate against them at the agent boundary.",
-        impact="Input / Output Contract Clarity",
+    "SCM_NO_SUPPLIER_ELIGIBILITY": dict(
+        title="Validate product-supplier compatibility before ordering",
+        recommendation="Before selecting a supplier, check that they stock the product/SKU. Add a 'can_supply' flag or similar, or filter eligible suppliers before scoring.",
+        impact="SCM Logic Quality",
     ),
     "OBS_NO_LOGGING": dict(
-        title="Add structured logging at key decision points",
-        recommendation="Use the logging module to record, at minimum: inputs received, the decision made, the reasoning/rule that drove it, and any errors -- at INFO level or above.",
+        title="Add structured logging of decisions and reasoning",
+        recommendation="Use Python logging module to record: inputs, intermediate calculations, LLM output, decision made, and any fallbacks. At minimum, log at INFO level when an order is recommended.",
         impact="Observability / Traceability",
-    ),
-    "SCM_NO_RELEVANCE_SIGNAL": dict(
-        title="Clarify the SCM domain mapping",
-        recommendation="In the README or code comments, explicitly name the SCM entities the agent operates on (e.g. SKU, supplier, lead time, reorder point) so domain relevance is unambiguous to reviewers.",
-        impact="SCM Readiness / Business Fit",
     ),
 }
 

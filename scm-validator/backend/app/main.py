@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import db
 from .api.runs import router as runs_router
 
+# Initialize DB on module load
+db.init_db()
+
 app = FastAPI(title="SCM Agent Validation Platform API")
 
 app.add_middleware(
@@ -13,12 +16,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def on_startup():
-    db.init_db()
-
 
 app.include_router(runs_router)
 

@@ -4,7 +4,10 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import repo_ingestor, static_analyzer, rule_engine, scoring_engine, evidence_builder, recommendation_builder, llm_insights
+from . import repo_ingestor, static_analyzer
+from . import rule_engine_v2 as rule_engine
+from . import scoring_engine_v2 as scoring_engine
+from . import positive_signals, evidence_builder, recommendation_builder, llm_insights
 from ..report_schema import Finding, Summary, ValidationResult
 from .. import db
 
@@ -15,6 +18,11 @@ def _finding_id(run_id: str, idx: int) -> str:
 
 def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationResult:
     facts = static_analyzer.build_repo_facts(workspace)
+
+    # Collect positive signals
+    positive_signals_list = positive_signals.collect_all_positive_signals(facts)
+
+    # Run deterministic rules
     raw_findings = rule_engine.run_all_rules(facts, context)
 
     finding_ids = [_finding_id(run_id, i) for i in range(len(raw_findings))]
@@ -34,7 +42,8 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
         for i, rf in enumerate(raw_findings)
     ]
 
-    scoring = scoring_engine.compute_score(raw_findings)
+    # Compute score with positive signals factored in
+    scoring = scoring_engine.compute_score(raw_findings, positive_signals_list)
     recommendations = recommendation_builder.build_recommendations(run_id, raw_findings, finding_ids)
 
     ai_insights = []
@@ -48,13 +57,15 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
         run_id=run_id,
         timestamp=datetime.now(timezone.utc).isoformat(),
         overall_trust_score=scoring.overall_score,
-        verdict=scoring.verdict,
+        demo_readiness=scoring.demo_readiness,
+        production_readiness=scoring.production_readiness,
         status="completed",
     )
 
     return ValidationResult(
         summary=summary,
         score_breakdown=scoring.breakdown,
+        positive_signals=positive_signals_list,
         findings=findings,
         recommendations=recommendations,
         evidence=evidence_list,
@@ -67,14 +78,16 @@ def persist_result(result: ValidationResult, source_type: str, source_ref: str |
     now = datetime.now(timezone.utc).isoformat()
     with db.get_conn() as conn:
         conn.execute(
-            """UPDATE runs SET status=?, overall_trust_score=?, verdict=?, updated_at=? WHERE run_id=?""",
-            (result.summary.status, result.summary.overall_trust_score, result.summary.verdict, now, run_id),
+            """UPDATE runs SET status=?, overall_trust_score=?, demo_readiness=?, production_readiness=?, updated_at=? WHERE run_id=?""",
+            (result.summary.status, result.summary.overall_trust_score, result.summary.demo_readiness, result.summary.production_readiness, now, run_id),
         )
         for item in result.score_breakdown:
             conn.execute(
                 "INSERT INTO score_breakdown (run_id, dimension, score, max_score, remarks) VALUES (?,?,?,?,?)",
                 (run_id, item.dimension, item.score, item.max_score, item.remarks),
             )
+        for signal in result.positive_signals:
+            conn.execute("INSERT INTO positive_signals (run_id, signal) VALUES (?,?)", (run_id, signal))
         for f in result.findings:
             conn.execute(
                 """INSERT INTO findings (id, run_id, severity, category, title, description, why_it_matters, score_impact, evidence_refs)

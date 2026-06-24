@@ -19,7 +19,14 @@
       "Bash(mkdir -p \"/c/Users/Sanjay/Desktop/SCM/.claude\" && ls \"/c/Users/Sanjay/Desktop/SCM/.claude\")",
       "mcp__Claude_Preview__preview_start",
       "Bash(powershell -Command \"Stop-Process -Id 23140 -Force\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(pkill -f \"uvicorn app.main\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/runs -F 'agent_name=Smart Reorder Agent \\(v2 engine\\)' -F 'use_case=Inventory reorder recommendation' -F files=@smart_reorder_agent.py)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['run_id']\\); open\\('/tmp/run_id.txt','w'\\).write\\(d['run_id']\\)\")",
+      "Bash(curl -s http://localhost:8000/api/runs/a5c7e83a9282/status)",
+      "Bash(./.venv/Scripts/python.exe -c ' *)",
+      "Bash(./.venv/Scripts/python.exe)",
+      "Bash(curl -s -X POST http://localhost:8000/api/runs -F 'agent_name=Smart Reorder Agent \\(v2 engine\\)' -F 'use_case=Inventory reorder recommendation' -F files=@/c/Users/Sanjay/Desktop/SCM/smart_reorder_agent.py)"
     ]
   }
 }

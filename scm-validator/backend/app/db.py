@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS runs (
     enable_llm_insights INTEGER DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'queued',
     overall_trust_score REAL,
-    verdict TEXT,
+    demo_readiness TEXT,
+    production_readiness TEXT,
     error TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -68,6 +69,12 @@ CREATE TABLE IF NOT EXISTS ai_insights (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL REFERENCES runs(run_id),
     insight TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS positive_signals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES runs(run_id),
+    signal TEXT NOT NULL
 );
 """
 
