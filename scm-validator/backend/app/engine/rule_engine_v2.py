@@ -43,6 +43,44 @@ def _py_files(facts: RepoFacts) -> list[FileFact]:
     return [f for f in facts.files if f.ext == ".py"]
 
 
+# ---- Applicability gate (Phase 0 of the Trust Harness) ----
+# Runs before any scoring. A submission that isn't agent-like / isn't SCM-domain
+# should never receive a numeric trust score at all -- not even a 0, since a 0
+# implies "we evaluated a real SCM agent and it failed," which is a different,
+# false claim about an unrelated or empty repo.
+
+SCM_DOMAIN_TERMS = [
+    "inventory", "supplier", "suppliers", "reorder", "restock", "replenish",
+    "stock", "demand", "procurement", "warehouse", "logistics", "shipment",
+    "lead time", "leadtime", "sku", "purchase order", "fulfillment",
+    "backorder", "forecast", "distribution", "freight", "vendor",
+    "bill of materials", "bom", "safety stock", "moq", "eoq",
+]
+DECISION_VERB_RE = re.compile(
+    r"(decide|choose|select|recommend|optimize|plan|reorder|forecast|allocate|predict|evaluate)",
+    re.IGNORECASE,
+)
+
+
+def check_applicability(facts: RepoFacts) -> tuple[bool, str]:
+    """Returns (is_applicable, reason_if_not). Pure structural/keyword check -- cheap,
+    runs before static rules, invariant tests, or golden scenarios."""
+    all_functions = [fn for f in facts.files for fn in f.functions]
+    has_decision_fn = any(DECISION_VERB_RE.search(fn) for fn in all_functions)
+    has_structure_signal = bool(
+        re.search(r"#.*perceive", facts.corpus_lower)
+        or re.search(r"\bdef\s+(decide|act)\b", facts.corpus_lower)
+    )
+    if not all_functions or (not has_decision_fn and not has_structure_signal):
+        return False, "No agent-like decision logic detected in this submission."
+
+    domain_hits = sum(1 for term in SCM_DOMAIN_TERMS if term in facts.corpus_lower)
+    if domain_hits < 3:
+        return False, f"Only {domain_hits} SCM-domain term(s) found -- this does not appear to be a supply chain agent."
+
+    return True, ""
+
+
 # ---- Specification & Contract ----
 
 def check_missing_io_contract(facts: RepoFacts) -> list[RawFinding]:

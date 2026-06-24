@@ -10,20 +10,20 @@ function readinessClass(value: string) {
   return "ready-bad";
 }
 
-export function DemoReadinessBadge({ value }: { value: DemoReadiness }) {
+export function DemoReadinessBadge({ value }: { value: DemoReadiness | null }) {
   return (
     <div className="readiness-pill">
       <span className="readiness-label">Demo</span>
-      <span className={`readiness-value ${readinessClass(value)}`}>{value}</span>
+      <span className={`readiness-value ${readinessClass(value ?? "")}`}>{value ?? "—"}</span>
     </div>
   );
 }
 
-export function ProductionReadinessBadge({ value }: { value: ProductionReadiness }) {
+export function ProductionReadinessBadge({ value }: { value: ProductionReadiness | null }) {
   return (
     <div className="readiness-pill">
       <span className="readiness-label">Production</span>
-      <span className={`readiness-value ${readinessClass(value)}`}>{value}</span>
+      <span className={`readiness-value ${readinessClass(value ?? "")}`}>{value ?? "—"}</span>
     </div>
   );
 }

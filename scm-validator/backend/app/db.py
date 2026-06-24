@@ -16,7 +16,12 @@ CREATE TABLE IF NOT EXISTS runs (
     description TEXT,
     enable_llm_insights INTEGER DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'queued',
+    applicable INTEGER DEFAULT 1,
+    not_applicable_reason TEXT,
     overall_trust_score REAL,
+    hygiene_score REAL,
+    behavior_score REAL,
+    adapter_status TEXT DEFAULT 'not_attempted',
     demo_readiness TEXT,
     production_readiness TEXT,
     error TEXT,
@@ -75,6 +80,27 @@ CREATE TABLE IF NOT EXISTS positive_signals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL REFERENCES runs(run_id),
     signal TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invariant_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES runs(run_id),
+    test_id TEXT NOT NULL,
+    tier TEXT NOT NULL DEFAULT 'required',
+    passed INTEGER NOT NULL,
+    detail TEXT
+);
+
+CREATE TABLE IF NOT EXISTS scenario_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES runs(run_id),
+    scenario_id TEXT NOT NULL,
+    tier TEXT NOT NULL DEFAULT 'required',
+    passed INTEGER NOT NULL,
+    description TEXT,
+    expected TEXT,   -- json
+    actual TEXT,     -- json
+    detail TEXT
 );
 """
 

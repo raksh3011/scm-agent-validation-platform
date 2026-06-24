@@ -43,7 +43,9 @@
       "PowerShell(gh auth status 2>&1)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh auth status 2>&1)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh repo create raksh3011/scm-agent-validation-platform --private --description \"Lightweight, deterministic-first SCM AI agent validation platform \\(FastAPI + Next.js\\)\" 2>&1)",
-      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh repo view raksh3011/scm-agent-validation-platform --json name,visibility,defaultBranchRef,url 2>&1)"
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh repo view raksh3011/scm-agent-validation-platform --json name,visibility,defaultBranchRef,url 2>&1)",
+      "Bash(./.venv/Scripts/python.exe tests/test_phase0_applicability.py)",
+      "Bash(echo \"EXIT $?\")"
     ]
   }
 }

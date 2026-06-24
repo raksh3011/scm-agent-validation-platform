@@ -56,24 +56,50 @@ class Evidence(BaseModel):
     reason: str = ""
 
 
+class InvariantResult(BaseModel):
+    """One execution-based behavioral check (Phase 3 of the Trust Harness)."""
+    test_id: str
+    tier: Literal["required", "recommended"] = "required"
+    passed: bool
+    detail: str = ""
+
+
+class ScenarioResult(BaseModel):
+    """One golden-scenario grading (Phase 4 of the Trust Harness)."""
+    scenario_id: str
+    tier: Literal["required", "recommended"] = "required"
+    passed: bool
+    description: str = ""
+    expected: dict = {}
+    actual: dict = {}
+    detail: str = ""
+
+
 class Summary(BaseModel):
     agent_name: str
     run_id: str
     timestamp: str
-    overall_trust_score: float
-    demo_readiness: DemoReadiness
-    production_readiness: ProductionReadiness
+    applicable: bool = True
+    not_applicable_reason: str | None = None
+    overall_trust_score: float | None = None
+    hygiene_score: float | None = None       # static-rule "secondary" signal (0-100)
+    behavior_score: float | None = None       # execution-based signal (0-100); dominant input
+    demo_readiness: DemoReadiness | None = None
+    production_readiness: ProductionReadiness | None = None
     status: RunStatus
 
 
 class ValidationResult(BaseModel):
     summary: Summary
-    score_breakdown: list[ScoreBreakdownItem]
+    score_breakdown: list[ScoreBreakdownItem] = []
     positive_signals: list[str] = []
-    findings: list[Finding]
-    recommendations: list[Recommendation]
-    evidence: list[Evidence]
+    findings: list[Finding] = []
+    recommendations: list[Recommendation] = []
+    evidence: list[Evidence] = []
     ai_insights: list[str] = []
+    invariant_results: list[InvariantResult] = []
+    scenario_results: list[ScenarioResult] = []
+    adapter_status: str = "not_attempted"   # not_attempted | loaded | auto_generated | failed
 
 
 class CreateRunRequest(BaseModel):

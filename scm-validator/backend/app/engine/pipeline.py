@@ -19,6 +19,26 @@ def _finding_id(run_id: str, idx: int) -> str:
 def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationResult:
     facts = static_analyzer.build_repo_facts(workspace)
 
+    # Phase 0: Applicability gate -- must run before anything else. An unrelated
+    # or empty submission gets no numeric score at all (not a 0), and never
+    # reaches static rules, the adapter, invariant tests, or golden scenarios.
+    is_applicable, not_applicable_reason = rule_engine.check_applicability(facts)
+    if not is_applicable:
+        summary = Summary(
+            agent_name=context.get("agent_name", "Unnamed Agent"),
+            run_id=run_id,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            applicable=False,
+            not_applicable_reason=not_applicable_reason,
+            overall_trust_score=None,
+            hygiene_score=None,
+            behavior_score=None,
+            demo_readiness=None,
+            production_readiness=None,
+            status="completed",
+        )
+        return ValidationResult(summary=summary, adapter_status="not_attempted")
+
     # Collect positive signals
     positive_signals_list = positive_signals.collect_all_positive_signals(facts)
 
@@ -76,10 +96,15 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
 def persist_result(result: ValidationResult, source_type: str, source_ref: str | None, context: dict):
     run_id = result.summary.run_id
     now = datetime.now(timezone.utc).isoformat()
+    s = result.summary
     with db.get_conn() as conn:
         conn.execute(
-            """UPDATE runs SET status=?, overall_trust_score=?, demo_readiness=?, production_readiness=?, updated_at=? WHERE run_id=?""",
-            (result.summary.status, result.summary.overall_trust_score, result.summary.demo_readiness, result.summary.production_readiness, now, run_id),
+            """UPDATE runs SET status=?, applicable=?, not_applicable_reason=?, overall_trust_score=?,
+                               hygiene_score=?, behavior_score=?, adapter_status=?,
+                               demo_readiness=?, production_readiness=?, updated_at=? WHERE run_id=?""",
+            (s.status, int(s.applicable), s.not_applicable_reason, s.overall_trust_score,
+             s.hygiene_score, s.behavior_score, result.adapter_status,
+             s.demo_readiness, s.production_readiness, now, run_id),
         )
         for item in result.score_breakdown:
             conn.execute(
@@ -108,6 +133,18 @@ def persist_result(result: ValidationResult, source_type: str, source_ref: str |
             )
         for insight in result.ai_insights:
             conn.execute("INSERT INTO ai_insights (run_id, insight) VALUES (?,?)", (run_id, insight))
+        for ir in result.invariant_results:
+            conn.execute(
+                "INSERT INTO invariant_results (run_id, test_id, tier, passed, detail) VALUES (?,?,?,?,?)",
+                (run_id, ir.test_id, ir.tier, int(ir.passed), ir.detail),
+            )
+        for sr in result.scenario_results:
+            conn.execute(
+                """INSERT INTO scenario_results (run_id, scenario_id, tier, passed, description, expected, actual, detail)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (run_id, sr.scenario_id, sr.tier, int(sr.passed), sr.description,
+                 db.dump_refs(sr.expected), db.dump_refs(sr.actual), sr.detail),
+            )
 
 
 def mark_failed(run_id: str, error: str):

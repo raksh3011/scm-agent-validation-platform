@@ -6,7 +6,10 @@ from fastapi import APIRouter, BackgroundTasks, Form, UploadFile, File, HTTPExce
 
 from .. import db
 from ..engine import repo_ingestor, pipeline
-from ..report_schema import ValidationResult, Summary, ScoreBreakdownItem, Finding, Recommendation, Evidence
+from ..report_schema import (
+    ValidationResult, Summary, ScoreBreakdownItem, Finding, Recommendation, Evidence,
+    InvariantResult, ScenarioResult,
+)
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -125,21 +128,32 @@ def get_results(run_id: str):
         if run["status"] != "completed":
             raise HTTPException(409, f"Run is not completed yet (status={run['status']})")
 
+        summary = Summary(
+            agent_name=run["agent_name"], run_id=run_id, timestamp=run["updated_at"],
+            applicable=bool(run["applicable"]),
+            not_applicable_reason=run["not_applicable_reason"],
+            overall_trust_score=run["overall_trust_score"],
+            hygiene_score=run["hygiene_score"],
+            behavior_score=run["behavior_score"],
+            demo_readiness=run["demo_readiness"],
+            production_readiness=run["production_readiness"],
+            status=run["status"],
+        )
+
+        if not summary.applicable:
+            return ValidationResult(summary=summary, adapter_status=run["adapter_status"] or "not_attempted")
+
         breakdown_rows = conn.execute("SELECT * FROM score_breakdown WHERE run_id=?", (run_id,)).fetchall()
         finding_rows = conn.execute("SELECT * FROM findings WHERE run_id=?", (run_id,)).fetchall()
         rec_rows = conn.execute("SELECT * FROM recommendations WHERE run_id=?", (run_id,)).fetchall()
         evidence_rows = conn.execute("SELECT * FROM evidence WHERE run_id=?", (run_id,)).fetchall()
         insight_rows = conn.execute("SELECT insight FROM ai_insights WHERE run_id=?", (run_id,)).fetchall()
         signal_rows = conn.execute("SELECT signal FROM positive_signals WHERE run_id=?", (run_id,)).fetchall()
+        invariant_rows = conn.execute("SELECT * FROM invariant_results WHERE run_id=?", (run_id,)).fetchall()
+        scenario_rows = conn.execute("SELECT * FROM scenario_results WHERE run_id=?", (run_id,)).fetchall()
 
     return ValidationResult(
-        summary=Summary(
-            agent_name=run["agent_name"], run_id=run_id, timestamp=run["updated_at"],
-            overall_trust_score=run["overall_trust_score"] or 0,
-            demo_readiness=run["demo_readiness"] or "Not Ready",
-            production_readiness=run["production_readiness"] or "Not Ready",
-            status=run["status"],
-        ),
+        summary=summary,
         score_breakdown=[ScoreBreakdownItem(dimension=r["dimension"], score=r["score"], max_score=r["max_score"], remarks=r["remarks"]) for r in breakdown_rows],
         positive_signals=[r["signal"] for r in signal_rows],
         findings=[Finding(id=r["id"], severity=r["severity"], category=r["category"], title=r["title"],
@@ -151,6 +165,11 @@ def get_results(run_id: str):
         evidence=[Evidence(id=r["id"], file_path=r["file_path"], line_start=r["line_start"], line_end=r["line_end"],
                             snippet=r["snippet"], reason=r["reason"]) for r in evidence_rows],
         ai_insights=[r["insight"] for r in insight_rows],
+        invariant_results=[InvariantResult(test_id=r["test_id"], tier=r["tier"], passed=bool(r["passed"]), detail=r["detail"] or "") for r in invariant_rows],
+        scenario_results=[ScenarioResult(scenario_id=r["scenario_id"], tier=r["tier"], passed=bool(r["passed"]),
+                                          description=r["description"] or "", expected=db.load_refs(r["expected"]) or {},
+                                          actual=db.load_refs(r["actual"]) or {}, detail=r["detail"] or "") for r in scenario_rows],
+        adapter_status=run["adapter_status"] or "not_attempted",
     )
 
 
@@ -158,6 +177,8 @@ def get_results(run_id: str):
 def list_runs():
     with db.get_conn() as conn:
         rows = conn.execute(
-            "SELECT run_id, agent_name, source_type, status, overall_trust_score, demo_readiness, production_readiness, created_at FROM runs ORDER BY created_at DESC"
+            """SELECT run_id, agent_name, source_type, status, applicable, not_applicable_reason,
+                      overall_trust_score, hygiene_score, behavior_score, demo_readiness, production_readiness, created_at
+               FROM runs ORDER BY created_at DESC"""
         ).fetchall()
     return [dict(r) for r in rows]

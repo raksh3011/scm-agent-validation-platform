@@ -39,13 +39,34 @@ export interface Evidence {
   reason: string;
 }
 
+export interface InvariantResult {
+  test_id: string;
+  tier: "required" | "recommended";
+  passed: boolean;
+  detail: string;
+}
+
+export interface ScenarioResult {
+  scenario_id: string;
+  tier: "required" | "recommended";
+  passed: boolean;
+  description: string;
+  expected: Record<string, unknown>;
+  actual: Record<string, unknown>;
+  detail: string;
+}
+
 export interface Summary {
   agent_name: string;
   run_id: string;
   timestamp: string;
-  overall_trust_score: number;
-  demo_readiness: DemoReadiness;
-  production_readiness: ProductionReadiness;
+  applicable: boolean;
+  not_applicable_reason: string | null;
+  overall_trust_score: number | null;
+  hygiene_score: number | null;
+  behavior_score: number | null;
+  demo_readiness: DemoReadiness | null;
+  production_readiness: ProductionReadiness | null;
   status: RunStatus;
 }
 
@@ -57,6 +78,9 @@ export interface ValidationResult {
   recommendations: Recommendation[];
   evidence: Evidence[];
   ai_insights: string[];
+  invariant_results: InvariantResult[];
+  scenario_results: ScenarioResult[];
+  adapter_status: string;
 }
 
 export interface RunListItem {

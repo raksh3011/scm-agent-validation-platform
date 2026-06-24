@@ -39,6 +39,24 @@ export default function ResultsPage() {
     );
   }
 
+  if (!result.summary.applicable) {
+    return (
+      <div className="shell">
+        <div className="card" style={{ background: "#fffbeb", borderColor: "#fde68a" }}>
+          <h2 style={{ marginTop: 0 }}>Not Applicable</h2>
+          <p>
+            This submission was not scored. {result.summary.not_applicable_reason}
+          </p>
+          <p className="muted small">
+            The platform only scores submissions that look like a real SCM decision agent.
+            A score of 0 would wrongly imply a real agent was evaluated and failed — this
+            submission was never evaluated at all.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const evidenceById = new Map(result.evidence.map((e) => [e.id, e]));
 
   return (
@@ -86,16 +104,21 @@ function SummaryHeader({ result }: { result: ValidationResult }) {
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 44, fontWeight: 800, color: "var(--primary)", lineHeight: 1 }}>
-              {summary.overall_trust_score}
+              {summary.overall_trust_score ?? "—"}
             </div>
             <div className="small muted">Trust Score / 100</div>
           </div>
           <DownloadReport runId={summary.run_id} result={result} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
         <DemoReadinessBadge value={summary.demo_readiness} />
         <ProductionReadinessBadge value={summary.production_readiness} />
+        {(summary.hygiene_score != null || summary.behavior_score != null) && (
+          <span className="small muted" style={{ marginLeft: 8 }}>
+            Hygiene (static rules): <strong>{summary.hygiene_score ?? "—"}</strong> · Behavior (executed scenarios): <strong>{summary.behavior_score ?? "—"}</strong>
+          </span>
+        )}
       </div>
     </div>
   );

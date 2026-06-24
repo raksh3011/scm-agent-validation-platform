@@ -129,16 +129,16 @@ export function buildReportHtml(result: ValidationResult): string {
 
   <div class="summary-grid">
     <div>
-      <div class="score-big">${summary.overall_trust_score}</div>
+      <div class="score-big">${summary.overall_trust_score ?? "—"}</div>
       <div style="color:#64748b;font-size:13px">Overall Trust Score / 100</div>
     </div>
     <div class="pill">
       <span class="label">Demo Readiness</span>
-      <span class="value" style="color:${readinessColor(summary.demo_readiness)}">${esc(summary.demo_readiness)}</span>
+      <span class="value" style="color:${readinessColor(summary.demo_readiness ?? "")}">${esc(summary.demo_readiness ?? "—")}</span>
     </div>
     <div class="pill">
       <span class="label">Production Readiness</span>
-      <span class="value" style="color:${readinessColor(summary.production_readiness)}">${esc(summary.production_readiness)}</span>
+      <span class="value" style="color:${readinessColor(summary.production_readiness ?? "")}">${esc(summary.production_readiness ?? "—")}</span>
     </div>
   </div>
 
