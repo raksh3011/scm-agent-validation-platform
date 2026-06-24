@@ -1,0 +1,56 @@
+[
+  {"id": "GS-01", "tier": "required", "description": "Normal reorder, mid lead time",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 300},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 5, "reliability": 0.9}],
+   "context": "", "expect": {"action": "REORDER", "rop_min": 330, "rop_max": 370, "qty_min": 350, "qty_max": 450}},
+
+  {"id": "GS-02", "tier": "required", "description": "Plenty of stock, same product -- must HOLD",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 900},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 5, "reliability": 0.9}],
+   "context": "", "expect": {"action": "HOLD"}},
+
+  {"id": "GS-03", "tier": "required", "description": "Long lead time raises ROP substantially",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 900},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 20, "reliability": 0.9}],
+   "context": "", "expect": {"action": "REORDER", "rop_min": 1050, "rop_max": 1150}},
+
+  {"id": "GS-04", "tier": "required", "description": "Near-zero stock emergency -- large reorder",
+   "product": {"product_id": "P1", "avg_daily_sales": 80, "safety_stock": 150, "on_hand_qty": 20},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 7, "reliability": 0.9}],
+   "context": "", "expect": {"action": "REORDER", "rop_min": 670, "rop_max": 750, "qty_min": 1100, "qty_max": 1400}},
+
+  {"id": "GS-05", "tier": "required", "description": "High safety stock raises ROP vs GS-01 baseline",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 500, "on_hand_qty": 600},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 5, "reliability": 0.9}],
+   "context": "", "expect": {"action": "REORDER", "rop_min": 700, "rop_max": 800}},
+
+  {"id": "GS-06", "tier": "required", "description": "Pareto-dominated supplier must not be chosen",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 900},
+   "suppliers": [
+     {"supplier_id": "BAD", "unit_price": 20, "lead_time_days": 20, "reliability": 0.3},
+     {"supplier_id": "GOOD", "unit_price": 8, "lead_time_days": 4, "reliability": 0.95}
+   ],
+   "context": "", "expect": {"supplier_id_not": "BAD"}},
+
+  {"id": "GS-07", "tier": "required", "description": "Product-supplier eligibility -- the supplier that doesn't carry this SKU must not be chosen even though it looks better on paper",
+   "product": {"product_id": "P-WIDGET", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 900},
+   "suppliers": [
+     {"supplier_id": "CHEAP_WRONG", "unit_price": 5, "lead_time_days": 2, "reliability": 0.99, "eligible_skus": ["P-OTHER"]},
+     {"supplier_id": "RIGHT_FIT", "unit_price": 12, "lead_time_days": 6, "reliability": 0.85, "eligible_skus": ["P-WIDGET"]}
+   ],
+   "context": "", "expect": {"supplier_id": "RIGHT_FIT"}},
+
+  {"id": "GS-08", "tier": "required", "description": "Zero suppliers -- must fail safely, not crash or invent an order",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": 300},
+   "suppliers": [], "context": "", "expect": {"action_or_error": true}},
+
+  {"id": "GS-09", "tier": "recommended", "description": "MOQ should be respected if the agent supports it",
+   "product": {"product_id": "P1", "avg_daily_sales": 10, "safety_stock": 20, "on_hand_qty": 100},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 5, "reliability": 0.9, "moq": 500}],
+   "context": "", "expect": {"qty_min_if_reorder": 500}},
+
+  {"id": "GS-10", "tier": "required", "description": "Negative on-hand from a data error must not crash or produce a runaway order",
+   "product": {"product_id": "P1", "avg_daily_sales": 50, "safety_stock": 100, "on_hand_qty": -50},
+   "suppliers": [{"supplier_id": "S1", "unit_price": 10, "lead_time_days": 5, "reliability": 0.9}],
+   "context": "", "expect": {"no_crash": true, "qty_max": 5000}}
+]
