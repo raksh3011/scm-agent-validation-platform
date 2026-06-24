@@ -8,6 +8,7 @@ from . import repo_ingestor, static_analyzer
 from . import rule_engine_v2 as rule_engine
 from . import scoring_engine_v2 as scoring_engine
 from . import positive_signals, evidence_builder, recommendation_builder, llm_insights
+from . import adapter_wiring, invariant_tests, golden_scenario_runner, behavior_scoring
 from ..report_schema import Finding, Summary, ValidationResult
 from .. import db
 
@@ -62,8 +63,11 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
         for i, rf in enumerate(raw_findings)
     ]
 
-    # Compute score with positive signals factored in
+    # Hygiene score: the existing static-rule engine. Demoted to a SECONDARY signal
+    # under the Trust Harness model -- informative, but no longer sufficient on its
+    # own to call anything "Production Ready" (that now requires execution evidence).
     scoring = scoring_engine.compute_score(raw_findings, positive_signals_list)
+    hygiene_score = scoring.overall_score
     recommendations = recommendation_builder.build_recommendations(run_id, raw_findings, finding_ids)
 
     ai_insights = []
@@ -72,13 +76,38 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
             context.get("agent_name", ""), context.get("use_case"), scoring.breakdown, findings
         )
 
+    # Phases 1-4: resolve an adapter (existing or auto-generated), then run
+    # execution-based invariant tests and golden scenarios through it.
+    resolved = adapter_wiring.resolve_adapter(run_id, workspace, facts)
+
+    if resolved.run_decision is None:
+        # No agent could be executed at all -- per the gated model this forces
+        # overall=0 and "Not Ready", regardless of how clean the hygiene score is.
+        invariant_results = []
+        scenario_results = []
+        behavior_score = 0.0
+        overall_score = 0.0
+        demo_readiness = "Not Ready"
+        production_readiness = "Not Ready"
+    else:
+        invariant_results = invariant_tests.run_invariant_tests(resolved.run_decision)
+        scenario_results = golden_scenario_runner.run_golden_scenarios(resolved.run_decision)
+        behavior_result = behavior_scoring.compute_behavior_score(invariant_results, scenario_results)
+        behavior_score = behavior_result.behavior_score
+        overall_score = behavior_scoring.compute_overall(hygiene_score, behavior_score)
+        demo_readiness = behavior_scoring.compute_demo_readiness(behavior_score)
+        production_readiness = behavior_scoring.compute_production_readiness(behavior_score, hygiene_score)
+
     summary = Summary(
         agent_name=context.get("agent_name", "Unnamed Agent"),
         run_id=run_id,
         timestamp=datetime.now(timezone.utc).isoformat(),
-        overall_trust_score=scoring.overall_score,
-        demo_readiness=scoring.demo_readiness,
-        production_readiness=scoring.production_readiness,
+        applicable=True,
+        overall_trust_score=overall_score,
+        hygiene_score=hygiene_score,
+        behavior_score=behavior_score,
+        demo_readiness=demo_readiness,
+        production_readiness=production_readiness,
         status="completed",
     )
 
@@ -90,6 +119,9 @@ def run_validation(run_id: str, workspace: Path, context: dict) -> ValidationRes
         recommendations=recommendations,
         evidence=evidence_list,
         ai_insights=ai_insights,
+        invariant_results=invariant_results,
+        scenario_results=scenario_results,
+        adapter_status=resolved.status,
     )
 
 

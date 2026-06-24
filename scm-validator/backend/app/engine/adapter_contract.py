@@ -19,6 +19,7 @@ from typing import Callable, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 ADAPTER_FILENAME = "scm_adapter.py"
+NO_ENTRYPOINT_MARKER = "AUTO_ADAPTER_NO_ENTRYPOINT"
 
 
 class SupplierInput(BaseModel):
@@ -143,6 +144,7 @@ def auto_generate_adapter_stub(facts) -> str:
 
     if not fn_name:
         return (
+            f"# {NO_ENTRYPOINT_MARKER}\n"
             "# AUTO-GENERATED ADAPTER STUB -- could not confidently detect a decision\n"
             "# entrypoint in this submission. Manual scm_adapter.py is required.\n"
             "def run_decision(scenario: dict) -> dict:\n"
