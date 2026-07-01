@@ -1,0 +1,42 @@
+pack_name: supplier
+axes:
+  - axis: supplier_state
+    category: supplier
+    applies_to: [smart_reorder, supplier_selection, procurement_agent]
+    levels:
+      - name: supplier_unavailable
+        description: Primary supplier cannot be reached
+        params: {supplier_status: unavailable}
+        severity_if_failed: critical
+      - name: supplier_delay
+        description: Supplier confirms an extended lead time
+        params: {supplier_status: delayed, lead_time_multiplier: 2.0}
+        severity_if_failed: high
+      - name: moq_violation
+        description: Requested quantity is below supplier MOQ
+        params: {requested_quantity_below_moq: true}
+        severity_if_failed: high
+      - name: contract_violation
+        description: Order terms violate the active supplier contract
+        params: {contract_violation: true}
+        severity_if_failed: high
+      - name: supplier_blackout
+        description: Supplier is in a declared blackout period
+        params: {supplier_status: blackout}
+        severity_if_failed: critical
+      - name: unreliable_supplier
+        description: Supplier reliability score is very low
+        params: {reliability_score: 0.35}
+        severity_if_failed: medium
+      - name: capacity_shortage
+        description: Supplier capacity is insufficient for the requested quantity
+        params: {capacity_shortfall: true}
+        severity_if_failed: high
+      - name: multiple_suppliers
+        description: Multiple qualified suppliers are available
+        params: {supplier_count: 3}
+        severity_if_failed: medium
+      - name: equal_scoring_suppliers
+        description: Two suppliers score identically on all criteria
+        params: {supplier_count: 2, tie_score: true}
+        severity_if_failed: low

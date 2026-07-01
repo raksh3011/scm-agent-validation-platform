@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
+import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 import TopNav from "../components/TopNav";
+import Providers from "../components/Providers";
+
+const displayFont = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "SCM Agent Validation Platform",
-  description: "Deterministic-first trust validation for SCM AI agents",
+  title: "CirceAI — SCM Agent Assurance Platform",
+  description: "Continuous, evidence-backed trust validation for SCM AI agents",
 };
 
 export default function RootLayout({
@@ -13,10 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <TopNav />
-        {children}
+    <html lang="en" suppressHydrationWarning className={displayFont.variable}>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <Providers>
+          <TopNav />
+          <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+        </Providers>
       </body>
     </html>
   );

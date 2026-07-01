@@ -1,0 +1,54 @@
+pack_name: inventory
+axes:
+  - axis: inventory_state
+    category: inventory
+    applies_to: [smart_reorder, inventory_optimization]
+    levels:
+      - name: zero_inventory
+        description: On-hand inventory is zero
+        params: {on_hand: 0, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: critical
+      - name: at_reorder_point
+        description: On-hand inventory equals the calculated reorder point exactly
+        params: {on_hand: 80, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: high
+      - name: safety_stock_breach
+        description: On-hand inventory has fallen below safety stock
+        params: {on_hand: 25, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: critical
+      - name: excess_inventory
+        description: On-hand inventory far exceeds demand cover
+        params: {on_hand: 1200, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: medium
+      - name: delayed_replenishment
+        description: On-order inventory is overdue for arrival
+        params: {on_hand: 30, allocated: 0, on_order: 100, reserved: 0, safety_stock: 40, on_order_overdue: true}
+        severity_if_failed: high
+      - name: inbound_inventory
+        description: Large inbound shipment expected within lead time
+        params: {on_hand: 50, allocated: 0, on_order: 150, reserved: 0, safety_stock: 40}
+        severity_if_failed: medium
+      - name: damaged_inventory
+        description: A portion of on-hand inventory is recorded as damaged/unusable
+        params: {on_hand: 80, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40, damaged_units: 35}
+        severity_if_failed: high
+      - name: reserved_inventory
+        description: A large share of on-hand inventory is reserved for other orders
+        params: {on_hand: 100, allocated: 0, on_order: 0, reserved: 70, safety_stock: 40}
+        severity_if_failed: high
+      - name: allocated_inventory
+        description: On-hand inventory is mostly allocated to open sales orders
+        params: {on_hand: 100, allocated: 80, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: high
+      - name: backorders_pending
+        description: Existing backorders are pending fulfillment
+        params: {on_hand: 10, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40, backorder_units: 60}
+        severity_if_failed: critical
+      - name: phantom_inventory
+        description: System inventory record disagrees with physical count
+        params: {on_hand: 90, allocated: 0, on_order: 0, reserved: 0, safety_stock: 40, physical_count: 12}
+        severity_if_failed: critical
+      - name: inventory_mismatch
+        description: Inventory record contains an internally inconsistent state
+        params: {on_hand: 50, allocated: 60, on_order: 0, reserved: 0, safety_stock: 40}
+        severity_if_failed: high

@@ -1,0 +1,22 @@
+pack_name: warehouse
+axes:
+  - axis: warehouse_state
+    category: warehouse
+    applies_to: [warehouse_agent, smart_reorder]
+    levels:
+      - name: warehouse_unavailable
+        description: Destination warehouse is unavailable
+        params: {warehouse_status: unavailable}
+        severity_if_failed: critical
+      - name: storage_constraint
+        description: Destination warehouse is near capacity
+        params: {available_units: 200}
+        severity_if_failed: high
+      - name: picking_delay
+        description: Picking operations are delayed
+        params: {picking_delay_hours: 48}
+        severity_if_failed: medium
+      - name: transfer_requirement
+        description: Stock must be transferred between warehouses
+        params: {transfer_required: true}
+        severity_if_failed: medium

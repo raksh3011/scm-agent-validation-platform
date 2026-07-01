@@ -1,0 +1,21 @@
+pack_name: concurrency
+axes:
+  - axis: concurrency_state
+    category: concurrency
+    applies_to: [smart_reorder, demand_forecasting]
+    levels:
+      - name: single_call
+        description: Single isolated decision call (baseline)
+        params: {}
+        severity_if_failed: low
+      - name: duplicate_call_risk
+        description: Agent may be invoked twice for the same event (at-least-once delivery)
+        params: {duplicate_call: true}
+        severity_if_failed: high
+      - name: rapid_repeat_invocation
+        description: Agent is invoked repeatedly in quick succession for the same SKU
+        params: {repeat_count: 5}
+        severity_if_failed: medium
+# Note: this validator runs one sandboxed subprocess per scenario by design, so these
+# scenarios model input-shape variations an agent should defend against (e.g. idempotency)
+# rather than actually racing concurrent threads/processes against shared state.

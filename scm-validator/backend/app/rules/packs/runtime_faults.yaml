@@ -1,0 +1,50 @@
+pack_name: runtime_faults
+axes:
+  - axis: runtime_fault
+    category: runtime
+    applies_to: [smart_reorder, demand_forecasting, supplier_selection, procurement_agent, warehouse_agent, inventory_optimization]
+    levels:
+      - name: none
+        description: No injected runtime fault
+        params: {}
+        severity_if_failed: low
+      - name: api_timeout
+        description: An external API call times out
+        params: {inject_fault: api_timeout}
+        severity_if_failed: high
+      - name: erp_unavailable
+        description: ERP system is unreachable
+        params: {inject_fault: erp_unavailable}
+        severity_if_failed: critical
+      - name: wms_unavailable
+        description: WMS system is unreachable
+        params: {inject_fault: wms_unavailable}
+        severity_if_failed: high
+      - name: database_unavailable
+        description: Backing database connection fails
+        params: {inject_fault: database_unavailable}
+        severity_if_failed: critical
+      - name: corrupted_database
+        description: Backing database returns corrupted/unexpected data
+        params: {inject_fault: corrupted_database}
+        severity_if_failed: critical
+      - name: missing_master_data
+        description: Required master data (SKU/supplier) record is missing
+        params: {inject_fault: missing_master_data}
+        severity_if_failed: high
+      - name: malformed_inputs
+        description: Input payload is malformed
+        params: {inject_fault: malformed_inputs}
+        severity_if_failed: high
+      - name: duplicate_records
+        description: Duplicate master data records are present
+        params: {inject_fault: duplicate_records}
+        severity_if_failed: medium
+      - name: truncated_records
+        description: A master data record is missing expected fields (truncated row)
+        params: {inject_fault: truncated_records}
+        severity_if_failed: high
+      - name: type_mismatched_fields
+        description: A master data field arrives with the wrong data type
+        params: {inject_fault: type_mismatched_fields}
+        severity_if_failed: high
