@@ -1,0 +1,30 @@
+pack_name: procurement
+axes:
+  - axis: procurement_state
+    category: procurement
+    applies_to: [smart_reorder, procurement_agent]
+    levels:
+      - name: emergency_replenishment
+        description: Stockout risk requires emergency replenishment
+        params: {emergency: true}
+        severity_if_failed: critical
+      - name: budget_restriction
+        description: Procurement budget is constrained this period
+        params: {budget_remaining: 500}
+        severity_if_failed: high
+      - name: partial_shipment
+        description: Supplier can only fulfill part of the order now
+        params: {partial_fulfillment: true}
+        severity_if_failed: medium
+      - name: split_ordering
+        description: Order should be split across multiple suppliers
+        params: {split_required: true}
+        severity_if_failed: medium
+      - name: urgent_purchase
+        description: Purchase must bypass normal lead time
+        params: {urgent: true}
+        severity_if_failed: high
+      - name: procurement_policy_violation
+        description: Requested order violates a procurement policy rule
+        params: {policy_violation: true}
+        severity_if_failed: high

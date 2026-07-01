@@ -1,0 +1,26 @@
+pack_name: security
+axes:
+  - axis: security_state
+    category: security
+    applies_to: [smart_reorder, demand_forecasting]
+    levels:
+      - name: clean_input
+        description: Well-formed input (baseline)
+        params: {}
+        severity_if_failed: low
+      - name: negative_inventory_value
+        description: Inventory record contains a negative on-hand value
+        params: {on_hand: -50}
+        severity_if_failed: high
+      - name: oversized_quantity_input
+        description: Inventory record contains an implausibly large on-hand value
+        params: {on_hand: 10000000}
+        severity_if_failed: medium
+      - name: null_supplier_reference
+        description: Supplier reference is missing/null
+        params: {supplier_id: null}
+        severity_if_failed: high
+      - name: injected_payload_field
+        description: Input contains an unexpected injected field (e.g. script-like string)
+        params: {__injected: "<script>alert(1)</script>"}
+        severity_if_failed: medium

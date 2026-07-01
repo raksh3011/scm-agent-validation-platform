@@ -1,0 +1,22 @@
+pack_name: stress
+axes:
+  - axis: stress_state
+    category: stress
+    applies_to: [smart_reorder, demand_forecasting]
+    levels:
+      - name: normal_load
+        description: Standard input volume (baseline)
+        params: {}
+        severity_if_failed: low
+      - name: long_demand_history
+        description: Very long historical demand series (multi-year monthly history)
+        params: {history_length: 60}
+        severity_if_failed: medium
+      - name: extended_demand_history
+        description: Extremely long historical demand series
+        params: {history_length: 240}
+        severity_if_failed: high
+      - name: wide_supplier_pool
+        description: A large number of qualified suppliers must be considered
+        params: {supplier_pool_size: 25}
+        severity_if_failed: low

@@ -1,0 +1,71 @@
+pack_name: demand
+axes:
+  - axis: demand_pattern
+    category: demand
+    applies_to: [smart_reorder, demand_forecasting, inventory_optimization]
+    levels:
+      - name: normal_demand
+        description: Stable demand consistent with historical baseline
+        params: {demand_multiplier: 1.0, volatility: low}
+        severity_if_failed: low
+      - name: promotion
+        description: Demand uplift driven by an active promotion
+        params: {demand_multiplier: 1.8, volatility: medium}
+        severity_if_failed: medium
+      - name: festival
+        description: Festival-driven seasonal demand uplift
+        params: {demand_multiplier: 2.2, volatility: medium}
+        severity_if_failed: medium
+      - name: seasonal_demand
+        description: Recurring seasonal demand pattern
+        params: {demand_multiplier: 1.4, volatility: low}
+        severity_if_failed: medium
+      - name: weather_impact
+        description: Demand shock driven by weather events
+        params: {demand_multiplier: 1.6, volatility: high}
+        severity_if_failed: medium
+      - name: demand_spike
+        description: Sudden sharp increase in demand
+        params: {demand_multiplier: 3.0, volatility: high}
+        severity_if_failed: critical
+      - name: demand_collapse
+        description: Sudden sharp decrease in demand
+        params: {demand_multiplier: 0.2, volatility: high}
+        severity_if_failed: high
+      - name: panic_buying
+        description: Extreme short-term demand surge
+        params: {demand_multiplier: 4.0, volatility: high}
+        severity_if_failed: critical
+      - name: forecast_error
+        description: Historical demand data contains a known forecast error
+        params: {demand_multiplier: 1.0, volatility: medium, inject_forecast_error: true}
+        severity_if_failed: medium
+      - name: uncertain_demand
+        description: High-variance, low-confidence demand signal
+        params: {demand_multiplier: 1.0, volatility: extreme}
+        severity_if_failed: medium
+
+  - axis: data_quality
+    category: data_quality
+    applies_to: [demand_forecasting]
+    levels:
+      - name: clean_history
+        description: Complete, well-formed demand history
+        params: {missing_periods: 0, duplicate_periods: 0, outliers: 0}
+        severity_if_failed: low
+      - name: missing_periods
+        description: Demand history has gaps
+        params: {missing_periods: 3, duplicate_periods: 0, outliers: 0}
+        severity_if_failed: medium
+      - name: duplicate_periods
+        description: Demand history contains duplicate period records
+        params: {missing_periods: 0, duplicate_periods: 2, outliers: 0}
+        severity_if_failed: medium
+      - name: outlier_contaminated
+        description: Demand history contains extreme outlier periods
+        params: {missing_periods: 0, duplicate_periods: 0, outliers: 2}
+        severity_if_failed: medium
+      - name: short_history
+        description: Very little demand history is available
+        params: {history_length: 3}
+        severity_if_failed: high

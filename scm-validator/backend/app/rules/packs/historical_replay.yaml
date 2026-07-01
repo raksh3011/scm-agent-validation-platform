@@ -1,0 +1,20 @@
+pack_name: historical_replay
+axes:
+  - axis: replay_state
+    category: replay
+    applies_to: [smart_reorder, demand_forecasting]
+    levels:
+      - name: no_replay
+        description: Standard forward-looking scenario (baseline)
+        params: {}
+        severity_if_failed: low
+      - name: replay_last_period
+        description: Regression check replaying the most recent known-good demand period
+        params: {replay: true, replay_window: 1}
+        severity_if_failed: medium
+      - name: replay_full_window
+        description: Regression check replaying the entire known demand history window
+        params: {replay: true, replay_window: 12}
+        severity_if_failed: medium
+# Note: replays the synthetic baseline history generated for this validation run as a
+# stable regression fixture, not a customer's actual historical transaction log.

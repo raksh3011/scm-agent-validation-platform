@@ -1,5 +1,8 @@
-fastapi
-uvicorn[standard]
-python-multipart
-pydantic
-requests
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
+python-multipart==0.0.22
+pydantic==2.12.5
+requests==2.34.2
+pyyaml==6.0.1
+reportlab==5.0.0
+psycopg2-binary==2.9.10
