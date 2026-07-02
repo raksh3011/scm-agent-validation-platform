@@ -36,6 +36,14 @@ def workspace_path(run_id: str) -> Path:
     return p
 
 
+# RFC 6052 well-known prefix used by NAT64 gateways (common on IPv6-only
+# networks/sandboxes) to embed a real IPv4 address in the low 32 bits for
+# protocol translation. Python's ipaddress module marks the whole /96 as
+# is_reserved=True, which would otherwise reject every hostname resolved from
+# a NAT64-only network — even ones whose embedded IPv4 is genuinely public.
+_NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+
+
 def _reject_ssrf_targets(hostname: str) -> None:
     """Resolve the URL's hostname and reject anything that lands in a private,
     loopback, or link-local range — without this, `repo_url` is a server-side
@@ -49,8 +57,11 @@ def _reject_ssrf_targets(hostname: str) -> None:
         raise ValueError(f"Could not resolve repository host {hostname!r}: {e}")
     for family, _, _, _, sockaddr in infos:
         ip = ipaddress.ip_address(sockaddr[0])
-        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
-                or ip.is_multicast or ip.is_unspecified):
+        check_ip = ip
+        if isinstance(ip, ipaddress.IPv6Address) and ip in _NAT64_WELL_KNOWN_PREFIX:
+            check_ip = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        if (check_ip.is_private or check_ip.is_loopback or check_ip.is_link_local
+                or check_ip.is_reserved or check_ip.is_multicast or check_ip.is_unspecified):
             raise ValueError(
                 f"Repository host {hostname!r} resolves to a non-public address ({ip}) — rejected."
             )

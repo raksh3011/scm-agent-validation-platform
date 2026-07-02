@@ -22,6 +22,7 @@ import CapabilityGraph from "../../../../components/CapabilityGraph";
 import DefectExplorer from "../../../../components/DefectExplorer";
 import DecisionTraceFlow, { DecisionTraceSummary } from "../../../../components/DecisionTraceFlow";
 import RootCausePanel from "../../../../components/RootCausePanel";
+import PipelineStages from "../../../../components/PipelineStages";
 import { useRunResults } from "../../../../lib/queries";
 import { downloadReport } from "../../../../lib/api";
 import {
@@ -96,6 +97,7 @@ export default function ResultsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="catalogue">Test Case Catalogue ({scenarios.length})</TabsTrigger>
           <TabsTrigger value="trace">Decision Trace</TabsTrigger>
           <TabsTrigger value="rootcause">Root Causes ({rootCauses.length})</TabsTrigger>
@@ -107,6 +109,9 @@ export default function ResultsPage() {
 
         <TabsContent value="overview" className="mt-4">
           <Overview executions={executions} scenarios={scenarios} kpis={kpis} defects={defects} result={result} />
+        </TabsContent>
+        <TabsContent value="pipeline" className="mt-4">
+          <PipelineStages stages={result.stages ?? []} />
         </TabsContent>
         <TabsContent value="catalogue" className="mt-4">
           <ScenarioMatrix scenarios={scenarios} executions={executions} />
