@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Dark mode removed — no element ever carries the `.dark` class, so this app
+   is permanently light. Scoping the `dark:` variant to `.dark` (rather than
+   Tailwind's default OS-media-query fallback) keeps that true even though the
+   shadcn/ui primitives still ship `dark:` utility classes out of the box. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -29,32 +33,6 @@
   --ring: oklch(0.42 0.07 185);
   --circe-teal: oklch(0.42 0.07 185);
   --circe-gold: oklch(0.72 0.1 75);
-}
-
-.dark {
-  --background: oklch(0.16 0.014 60);
-  --foreground: oklch(0.96 0.012 85);
-  --card: oklch(0.2 0.015 60);
-  --card-foreground: oklch(0.96 0.012 85);
-  --popover: oklch(0.2 0.015 60);
-  --popover-foreground: oklch(0.96 0.012 85);
-  --primary: oklch(0.62 0.09 180);
-  --primary-foreground: oklch(0.14 0.01 60);
-  --secondary: oklch(0.26 0.015 60);
-  --secondary-foreground: oklch(0.96 0.012 85);
-  --muted: oklch(0.26 0.015 60);
-  --muted-foreground: oklch(0.68 0.02 80);
-  --accent: oklch(0.32 0.05 75);
-  --accent-foreground: oklch(0.93 0.04 85);
-  --destructive: oklch(0.6 0.2 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --success: oklch(0.62 0.12 165);
-  --warning: oklch(0.76 0.13 75);
-  --border: oklch(0.32 0.018 60);
-  --input: oklch(0.32 0.018 60);
-  --ring: oklch(0.62 0.09 180);
-  --circe-teal: oklch(0.62 0.09 180);
-  --circe-gold: oklch(0.76 0.12 78);
 }
 
 @theme inline {

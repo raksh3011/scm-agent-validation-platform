@@ -43,6 +43,9 @@ function formatValue(step: string, value: unknown): string {
   return String(value);
 }
 
+const NODE_WIDTH = 300;
+const ROW_HEIGHT = 108;
+
 export default function DecisionTraceFlow({ steps }: { steps: DecisionTraceStep[] }) {
   const { nodes, edges } = useMemo(() => {
     const nodes: Node[] = steps.map((s, i) => {
@@ -53,20 +56,26 @@ export default function DecisionTraceFlow({ steps }: { steps: DecisionTraceStep[
       const resultTone = isResultStep
         ? String(s.value) === "pass" ? "var(--color-success)" : String(s.value) === "fail" ? "var(--color-destructive)" : "var(--color-warning)"
         : style.border;
+      const value = formatValue(s.step, s.value);
 
       return {
         id: String(i),
-        position: { x: 0, y: i * 92 },
+        position: { x: 0, y: i * ROW_HEIGHT },
         data: {
           label: (
-            <div className="flex items-start gap-2 px-1">
-              <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: resultTone }} />
-              <div className="flex flex-col gap-0.5 overflow-hidden">
-                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="flex w-full items-start gap-2.5 px-1 py-0.5">
+              <div
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                style={{ background: `color-mix(in oklch, ${resultTone} 18%, transparent)` }}
+              >
+                <Icon className="h-3.5 w-3.5" style={{ color: resultTone }} />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {s.step.replace(/_/g, " ")}
                 </span>
-                <span className="truncate text-sm font-semibold" title={formatValue(s.step, s.value)}>
-                  {formatValue(s.step, s.value)}
+                <span className="break-words text-sm font-semibold leading-snug text-foreground" title={value}>
+                  {value}
                 </span>
               </div>
             </div>
@@ -77,9 +86,10 @@ export default function DecisionTraceFlow({ steps }: { steps: DecisionTraceStep[
         style: {
           background: style.bg,
           border: `1.5px solid ${resultTone}`,
-          borderRadius: 10,
-          width: 240,
-          padding: 8,
+          borderRadius: 12,
+          width: NODE_WIDTH,
+          padding: 10,
+          boxShadow: "0 1px 3px color-mix(in oklch, var(--color-foreground) 8%, transparent)",
         },
       };
     });
@@ -88,7 +98,7 @@ export default function DecisionTraceFlow({ steps }: { steps: DecisionTraceStep[
       source: String(i),
       target: String(i + 1),
       animated: true,
-      style: { stroke: "var(--color-primary)" },
+      style: { stroke: "var(--color-primary)", strokeWidth: 1.5, opacity: 0.5 },
     }));
     return { nodes, edges };
   }, [steps]);
@@ -98,9 +108,19 @@ export default function DecisionTraceFlow({ steps }: { steps: DecisionTraceStep[
   }
 
   return (
-    <div style={{ height: Math.max(320, steps.length * 92 + 40) }} className="rounded-lg border border-border">
-      <ReactFlow nodes={nodes} edges={edges} fitView nodesDraggable={false} nodesConnectable={false} proOptions={{ hideAttribution: true }}>
-        <Background gap={16} size={1} />
+    <div style={{ height: Math.max(360, steps.length * ROW_HEIGHT + 60) }} className="rounded-lg border border-border bg-muted/20">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        fitView
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.5}
+        maxZoom={1.25}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background gap={20} size={1} color="var(--color-border)" />
       </ReactFlow>
     </div>
   );

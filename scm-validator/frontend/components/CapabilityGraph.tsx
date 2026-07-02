@@ -5,15 +5,39 @@ import { motion } from "framer-motion";
 import { CapabilityGraphRecord } from "../lib/types";
 import { cn } from "../lib/utils";
 
-const WIDTH = 640;
-const HEIGHT = 420;
+const WIDTH = 720;
+const HEIGHT = 480;
 const CENTER = { x: WIDTH / 2, y: HEIGHT / 2 };
-const RADIUS = 150;
+const RADIUS = 175;
+const NODE_R = 38;
 
 function confidenceColor(confidence: number): string {
   if (confidence >= 0.75) return "var(--color-success)";
   if (confidence >= 0.5) return "var(--color-warning)";
   return "var(--color-destructive)";
+}
+
+/** Splits a label into up to two lines of roughly `maxChars` each on word
+ * boundaries, rather than mid-word truncation that used to clip names like
+ * "purchase order" or "reorder timing" down to unreadable fragments. */
+function wrapLabel(label: string, maxChars: number): string[] {
+  const words = label.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length > 2) {
+    return [lines[0], `${lines[1].slice(0, Math.max(1, maxChars - 1))}…`];
+  }
+  return lines;
 }
 
 export default function CapabilityGraph({ graph }: { graph: CapabilityGraphRecord | null }) {
@@ -58,36 +82,64 @@ export default function CapabilityGraph({ graph }: { graph: CapabilityGraphRecor
           ))}
 
           <motion.circle
-            cx={CENTER.x} cy={CENTER.y} r={42}
+            cx={CENTER.x} cy={CENTER.y} r={48}
             fill="var(--color-primary)"
             initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}
           />
-          <text x={CENTER.x} y={CENTER.y - 4} textAnchor="middle" className="fill-primary-foreground text-[11px] font-semibold">
+          <text x={CENTER.x} y={CENTER.y - 6} textAnchor="middle" className="fill-primary-foreground text-[12px] font-semibold">
             Agent
           </text>
-          <text x={CENTER.x} y={CENTER.y + 10} textAnchor="middle" className="fill-primary-foreground text-[8px]">
-            {graph.primary_policy.replace(/_/g, " ").slice(0, 16)}
-          </text>
-
-          {nodes.map((n, i) => (
-            <motion.g
-              key={n.name}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-              onMouseEnter={() => setHovered(n.name)}
-              onMouseLeave={() => setHovered(null)}
-              className="cursor-pointer"
+          {wrapLabel(graph.primary_policy.replace(/_/g, " "), 14).map((line, i, arr) => (
+            <text
+              key={i}
+              x={CENTER.x}
+              y={CENTER.y + 10 + i * 11 - ((arr.length - 1) * 5.5)}
+              textAnchor="middle"
+              className="fill-primary-foreground text-[9px]"
+              opacity={0.9}
             >
-              <circle cx={n.x} cy={n.y} r={hovered === n.name ? 30 : 26} fill={confidenceColor(n.confidence)} fillOpacity={0.85} />
-              <text x={n.x} y={n.y - 2} textAnchor="middle" className="fill-white text-[9px] font-medium" style={{ pointerEvents: "none" }}>
-                {n.name.replace(/_/g, " ").slice(0, 14)}
-              </text>
-              <text x={n.x} y={n.y + 10} textAnchor="middle" className="fill-white text-[8px]" style={{ pointerEvents: "none" }}>
-                {Math.round(n.confidence * 100)}%
-              </text>
-            </motion.g>
+              {line}
+            </text>
           ))}
+
+          {nodes.map((n, i) => {
+            const isHovered = hovered === n.name;
+            const label = wrapLabel(n.name.replace(/_/g, " "), 12);
+            return (
+              <motion.g
+                key={n.name}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
+                onMouseEnter={() => setHovered(n.name)}
+                onMouseLeave={() => setHovered(null)}
+                className="cursor-pointer"
+              >
+                <circle
+                  cx={n.x} cy={n.y} r={isHovered ? NODE_R + 3 : NODE_R}
+                  fill={confidenceColor(n.confidence)}
+                  fillOpacity={isHovered ? 1 : 0.85}
+                  stroke={isHovered ? "var(--color-foreground)" : "transparent"}
+                  strokeWidth={1.5}
+                />
+                {label.map((line, li) => (
+                  <text
+                    key={li}
+                    x={n.x}
+                    y={n.y - 5 + li * 11 - ((label.length - 1) * 5.5)}
+                    textAnchor="middle"
+                    className="fill-white text-[9.5px] font-medium"
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {line}
+                  </text>
+                ))}
+                <text x={n.x} y={n.y + (label.length > 1 ? 20 : 13)} textAnchor="middle" className="fill-white text-[9px]" style={{ pointerEvents: "none" }}>
+                  {Math.round(n.confidence * 100)}%
+                </text>
+              </motion.g>
+            );
+          })}
         </svg>
       </div>
 

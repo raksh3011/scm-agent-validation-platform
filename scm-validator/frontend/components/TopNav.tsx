@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
-import { Button } from "./ui/button";
 import ApiKeyControl from "./ApiKeyControl";
 import CirceLogo from "./CirceLogo";
-import { useThemeStore } from "../lib/store";
 import { cn } from "../lib/utils";
 
 const LINKS = [
@@ -17,7 +14,6 @@ const LINKS = [
 
 export default function TopNav() {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useThemeStore();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -39,9 +35,6 @@ export default function TopNav() {
             </Link>
           ))}
           <ApiKeyControl />
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme" className="ml-2">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
         </nav>
       </div>
     </header>
